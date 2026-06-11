@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, Check, Phone, RotateCcw, Search, ShieldAlert, Trash2, X } from 'lucide-react';
+import { Calendar, Check, Download, FileText, Phone, RotateCcw, Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 
@@ -30,6 +30,15 @@ interface Order {
   payment_notes: string | null;
   payment_recorded_at: string | null;
 }
+
+const escapeCsv = (value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+const escapeHtml = (value: string | number | null | undefined) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 export const Orders: React.FC = () => {
   const { showToast } = useToast();
@@ -70,7 +79,7 @@ export const Orders: React.FC = () => {
   }, [showToast]);
 
   useEffect(() => {
-    fetchOrders();
+    void Promise.resolve().then(fetchOrders);
 
     // Subscribe to real-time changes
     const subscription = supabase
@@ -117,6 +126,9 @@ export const Orders: React.FC = () => {
         .eq('id', id);
 
       if (error) throw error;
+      setOrders((current) => current.map((order) => (
+        order.id === id ? { ...order, status: 'failed' } : order
+      )));
       showToast('Order marked as Failed.', 'warning');
     } catch (err) {
       console.error('Error failing order:', err);
@@ -140,6 +152,19 @@ export const Orders: React.FC = () => {
         .eq('id', id);
 
       if (error) throw error;
+      setOrders((current) => current.map((order) => (
+        order.id === id
+          ? {
+              ...order,
+              status: 'pending',
+              payment_mode: null,
+              payment_amount: null,
+              payment_reference: null,
+              payment_notes: null,
+              payment_recorded_at: null,
+            }
+          : order
+      )));
       showToast('Order restored back to Pending.', 'success');
     } catch (err) {
       console.error('Error restoring order:', err);
@@ -157,6 +182,7 @@ export const Orders: React.FC = () => {
         .eq('id', deleteTargetOrder.id);
 
       if (error) throw error;
+      setOrders((current) => current.filter((order) => order.id !== deleteTargetOrder.id));
       showToast('Order deleted permanently.', 'success');
       setDeleteTargetOrder(null);
     } catch (err) {
@@ -187,20 +213,35 @@ export const Orders: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const paymentRecordedAt = new Date().toISOString();
+      const paidAmount = parseFloat(paymentAmount);
       const { error } = await supabase
         .from('orders')
         .update({
           status: 'fulfilled',
           payment_mode: paymentMode,
-          payment_amount: parseFloat(paymentAmount),
+          payment_amount: paidAmount,
           payment_reference: paymentReference.trim() || null,
           payment_notes: paymentNotes.trim() || null,
-          payment_recorded_at: new Date().toISOString(),
+          payment_recorded_at: paymentRecordedAt,
         })
         .eq('id', selectedOrder.id);
 
       if (error) throw error;
 
+      setOrders((current) => current.map((order) => (
+        order.id === selectedOrder.id
+          ? {
+              ...order,
+              status: 'fulfilled',
+              payment_mode: paymentMode,
+              payment_amount: paidAmount,
+              payment_reference: paymentReference.trim() || null,
+              payment_notes: paymentNotes.trim() || null,
+              payment_recorded_at: paymentRecordedAt,
+            }
+          : order
+      )));
       showToast('Order fulfilled and paid successfully!', 'success');
       setSelectedOrder(null);
     } catch (err) {
@@ -221,6 +262,60 @@ export const Orders: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ['Order Reference', 'Order Date', 'Status', 'Customer', 'Phone', 'Address', 'PIN Code', 'Delivery Date', 'Items', 'Total', 'Payment Mode', 'Paid Amount', 'Payment Reference', 'Instructions'],
+      ...filteredOrders.map((order) => [
+        order.order_number || order.id.slice(0, 8).toUpperCase(),
+        new Date(order.created_at).toLocaleString('en-IN'),
+        order.status,
+        order.customer_name,
+        order.phone,
+        order.address,
+        order.pin_code || '',
+        order.preferred_delivery_date || 'ASAP',
+        order.items.map((item) => `${item.name}: ${item.quantity} ${item.unit} x Rs.${item.price}`).join('; '),
+        order.total,
+        order.payment_mode || '',
+        order.payment_amount ?? '',
+        order.payment_reference || '',
+        order.special_instructions || '',
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `chittoor-farms-orders-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPdf = () => {
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) {
+      showToast('Please allow pop-ups to generate the PDF report.', 'warning');
+      return;
+    }
+    reportWindow.opener = null;
+
+    const rows = filteredOrders.map((order) => `
+      <tr>
+        <td>${escapeHtml(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
+        <td>${escapeHtml(formatDateTime(order.created_at))}</td>
+        <td><strong>${escapeHtml(order.customer_name)}</strong><br>${escapeHtml(order.phone)}<br>${escapeHtml(order.address)} ${order.pin_code ? `- ${escapeHtml(order.pin_code)}` : ''}</td>
+        <td>${order.items.map((item) => `${escapeHtml(item.name)}: ${escapeHtml(item.quantity)} ${escapeHtml(item.unit)}`).join('<br>')}</td>
+        <td>${escapeHtml(order.preferred_delivery_date || 'ASAP')}</td>
+        <td>Rs.${escapeHtml(order.total)}</td>
+      </tr>
+    `).join('');
+
+    reportWindow.document.write(`<!doctype html><html><head><title>Chittoor Farms Orders</title><style>
+      body{font-family:Arial,sans-serif;color:#1f2937;padding:24px}h1{color:#17633f;margin-bottom:4px}p{color:#64748b;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:11px}th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top}th{background:#17633f;color:white}.summary{display:flex;gap:24px;margin-top:14px;font-weight:bold}@page{size:landscape;margin:12mm}
+    </style></head><body><h1>Chittoor Farms Orders</h1><p>${escapeHtml(activeTab.toUpperCase())} orders report generated ${escapeHtml(new Date().toLocaleString('en-IN'))}</p><div class="summary"><span>Records: ${filteredOrders.length}</span><span>Total value: Rs.${filteredOrders.reduce((sum, order) => sum + Number(order.total), 0).toLocaleString('en-IN')}</span></div><table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Delivery</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>{window.print();}</script></body></html>`);
+    reportWindow.document.close();
   };
 
   return (
@@ -247,7 +342,8 @@ export const Orders: React.FC = () => {
         </button>
       </div>
 
-      <div className="admin-filter-bar">
+      <div className="orders-toolbar">
+        <div className="admin-filter-bar">
         <div className="admin-search-field">
           <Search size={17} />
           <input
@@ -262,6 +358,11 @@ export const Orders: React.FC = () => {
         {(searchTerm || dateFrom || dateTo) && (
           <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); }}>Clear</button>
         )}
+        </div>
+        <div className="orders-export-actions">
+          <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!filteredOrders.length}><FileText size={16} /> Export PDF</button>
+          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filteredOrders.length}><Download size={16} /> Export CSV</button>
+        </div>
       </div>
 
       {loading ? (
