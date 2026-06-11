@@ -13,6 +13,7 @@ interface Stats {
 
 interface RecentOrder {
   id: string;
+  order_number: string | null;
   customer_name: string;
   phone: string;
   total: number;
@@ -41,7 +42,7 @@ export const Dashboard: React.FC = () => {
         supabase.from('products').select('*', { count: 'exact', head: true }).eq('active', true).lte('stock', 5),
         supabase
           .from('orders')
-          .select('id, customer_name, phone, total, items')
+          .select('id, order_number, customer_name, phone, total, items')
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(5),
@@ -109,10 +110,13 @@ export const Dashboard: React.FC = () => {
         ) : (
           <div className="table-responsive">
             <table className="admin-table">
-              <thead><tr><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th></tr></thead>
+              <thead><tr><th>Order Reference</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th></tr></thead>
               <tbody>
                 {recentOrders.map((order) => (
                   <tr key={order.id}>
+                    <td style={{ fontWeight: 700, color: 'var(--secondary)', whiteSpace: 'nowrap' }}>
+                      {order.order_number || order.id.slice(0, 8).toUpperCase()}
+                    </td>
                     <td style={{ fontWeight: 600 }}>{order.customer_name}</td>
                     <td><a href={`tel:${order.phone}`}>{order.phone}</a></td>
                     <td>

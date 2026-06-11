@@ -699,6 +699,16 @@ main.main-content {
   align-items: center;
 }
 
+.order-success-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  margin-bottom: 0.9rem;
+  border: 4px solid #fff7d7;
+  box-shadow: var(--shadow-sm);
+}
+
 .order-success-icon {
   width: 76px;
   height: 76px;

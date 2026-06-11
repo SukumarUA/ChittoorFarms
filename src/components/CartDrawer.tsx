@@ -102,7 +102,6 @@ export const CartDrawer: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const orderId = crypto.randomUUID();
       const orderItems = cartItems.map((item) => ({
         product_id: item.id,
         name: item.name,
@@ -111,23 +110,20 @@ export const CartDrawer: React.FC = () => {
         price: item.price,
       }));
 
-      // Create order in Supabase
-      const { error } = await supabase.from('orders').insert([
-        {
-          id: orderId,
-          customer_name: fullName.trim(),
-          phone: phoneDigits,
-          address: address.trim(),
-          pin_code: pinCode || null,
-          preferred_delivery_date: preferredDate || null,
-          special_instructions: instructions.trim() || null,
-          items: orderItems,
-          total: cartTotal,
-          status: 'pending',
-        },
-      ]);
+      // Supabase atomically assigns the daily YYYYMMDDCF00001 order number.
+      const { data: orderReference, error } = await supabase.rpc('create_order', {
+        p_customer_name: fullName.trim(),
+        p_phone: phoneDigits,
+        p_address: address.trim(),
+        p_pin_code: pinCode || '',
+        p_preferred_delivery_date: preferredDate || null,
+        p_special_instructions: instructions.trim(),
+        p_items: orderItems,
+        p_total: cartTotal,
+      });
 
       if (error) throw error;
+      if (!orderReference) throw new Error('The order reference was not generated.');
 
       // Update product stock levels locally (reducing product stock by ordered quantity)
       // Since it's client-side, we try our best. The real database stock check is on the admin end,
@@ -159,7 +155,6 @@ export const CartDrawer: React.FC = () => {
             `  Amount: ₹${item.quantity * item.price}`,
           ];
         });
-        const orderReference = orderId.slice(0, 8).toUpperCase();
         const whatsappMessage = [
           '*New Chittoor Farms Order*',
           `Order Ref: ${orderReference}`,
@@ -177,7 +172,7 @@ export const CartDrawer: React.FC = () => {
           `Instructions: ${instructions.trim() || 'None'}`,
         ].join('\n');
         const whatsappUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-        setOrderConfirmation({ reference: orderReference, whatsappUrl });
+        setOrderConfirmation({ reference: String(orderReference), whatsappUrl });
       } else {
         showToast("Order placed! We'll contact you shortly.", 'success');
       }
@@ -400,6 +395,7 @@ export const CartDrawer: React.FC = () => {
       {/* Order Success and WhatsApp Reminder */}
       <div className={`modal-backdrop ${orderConfirmation ? 'open' : ''}`}>
         <div className="modal-content order-success-modal" onClick={(event) => event.stopPropagation()}>
+          <img className="order-success-logo" src="/CTRFLOGO.jpeg" alt="Chittoor Farms" />
           <div className="order-success-icon">
             <CheckCircle2 size={42} />
           </div>

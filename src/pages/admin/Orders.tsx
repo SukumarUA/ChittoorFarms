@@ -13,6 +13,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  order_number: string | null;
   created_at: string;
   customer_name: string;
   phone: string;
@@ -232,7 +233,7 @@ export const Orders: React.FC = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th style={{ width: '60px' }}>#</th>
+                <th>Order Reference</th>
                 <th>Order Date</th>
                 <th>Customer Details</th>
                 <th>Items Ordered</th>
@@ -242,10 +243,11 @@ export const Orders: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order, idx) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id}>
-                  {/* Sequential order number within the active tab */}
-                  <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{idx + 1}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--secondary)', whiteSpace: 'nowrap' }}>
+                    {order.order_number || order.id.slice(0, 8).toUpperCase()}
+                  </td>
                   
                   {/* Order Date */}
                   <td>{formatDateTime(order.created_at)}</td>
