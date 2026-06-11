@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, ShoppingBag, Trash2, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
@@ -19,6 +19,10 @@ export const CartDrawer: React.FC = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waNumber, setWaNumber] = useState('');
+  const [orderConfirmation, setOrderConfirmation] = useState<{
+    reference: string;
+    whatsappUrl: string;
+  } | null>(null);
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -60,6 +64,14 @@ export const CartDrawer: React.FC = () => {
 
   const handleCloseCheckout = () => {
     setIsCheckoutOpen(false);
+  };
+
+  const formatOrderUnit = (unit: string) => unit.trim().replace(/^1(?=\s*[a-zA-Z])\s*/, '');
+
+  const handleOpenWhatsApp = () => {
+    if (!orderConfirmation?.whatsappUrl) return;
+    const whatsappTab = window.open(orderConfirmation.whatsappUrl, '_blank', 'noopener,noreferrer');
+    if (!whatsappTab) window.location.assign(orderConfirmation.whatsappUrl);
   };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -138,12 +150,19 @@ export const CartDrawer: React.FC = () => {
       }
 
       if (waNumber) {
-        const itemLines = orderItems.map(
-          (item) => `• ${item.name}: ${item.quantity} ${item.unit} × ₹${item.price} = ₹${item.quantity * item.price}`,
-        );
+        const itemLines = orderItems.flatMap((item) => {
+          const unit = formatOrderUnit(item.unit);
+          return [
+            `- ${item.name}`,
+            `  Quantity: ${item.quantity} ${unit}`,
+            `  Price: ₹${item.price} per ${unit}`,
+            `  Amount: ₹${item.quantity * item.price}`,
+          ];
+        });
+        const orderReference = orderId.slice(0, 8).toUpperCase();
         const whatsappMessage = [
           '*New Chittoor Farms Order*',
-          `Order Ref: ${orderId.slice(0, 8).toUpperCase()}`,
+          `Order Ref: ${orderReference}`,
           '',
           `Customer: ${fullName.trim()}`,
           `Phone: ${phoneDigits}`,
@@ -158,9 +177,7 @@ export const CartDrawer: React.FC = () => {
           `Instructions: ${instructions.trim() || 'None'}`,
         ].join('\n');
         const whatsappUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-        const whatsappTab = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-        if (!whatsappTab) window.location.assign(whatsappUrl);
-        showToast('Order placed. Send the prefilled details in WhatsApp to confirm.', 'success');
+        setOrderConfirmation({ reference: orderReference, whatsappUrl });
       } else {
         showToast("Order placed! We'll contact you shortly.", 'success');
       }
@@ -373,10 +390,36 @@ export const CartDrawer: React.FC = () => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-secondary" disabled={isSubmitting}>
-                {isSubmitting ? 'Placing Order...' : waNumber ? 'Place Order & Open WhatsApp' : 'Place Order (COD/UPI)'}
+                {isSubmitting ? 'Placing Order...' : 'Place Order (COD/UPI)'}
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      {/* Order Success and WhatsApp Reminder */}
+      <div className={`modal-backdrop ${orderConfirmation ? 'open' : ''}`}>
+        <div className="modal-content order-success-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="order-success-icon">
+            <CheckCircle2 size={42} />
+          </div>
+          <h3>Order Placed Successfully</h3>
+          <p>
+            Your order <strong>#{orderConfirmation?.reference}</strong> has been saved with Chittoor Farms.
+          </p>
+          <div className="whatsapp-reminder">
+            <MessageCircle size={24} />
+            <div>
+              <strong>One final step</strong>
+              <span>Open WhatsApp and tap Send on the prepared message so our team receives your order details.</span>
+            </div>
+          </div>
+          <button type="button" className="btn btn-whatsapp order-whatsapp-button" onClick={handleOpenWhatsApp}>
+            <MessageCircle size={19} /> Send Order on WhatsApp
+          </button>
+          <button type="button" className="order-success-close" onClick={() => setOrderConfirmation(null)}>
+            I will send it later
+          </button>
         </div>
       </div>
     </>
