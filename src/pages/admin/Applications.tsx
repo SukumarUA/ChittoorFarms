@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, MapPin, CalendarDays, Scroll } from 'lucide-react';
+import { Phone, MapPin, CalendarDays, Scroll, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 
@@ -14,6 +14,8 @@ interface Application {
   farming_since: number | null;
   varieties_grown: string | null;
   story: string;
+  photo_url: string | null;
+  farm_id: string | null;
   status: 'new' | 'contacted' | 'approved' | 'rejected';
 }
 
@@ -21,6 +23,11 @@ export const Applications: React.FC = () => {
   const { showToast } = useToast();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approveTarget, setApproveTarget] = useState<Application | null>(null);
+  const [farmName, setFarmName] = useState('');
+  const [farmVarieties, setFarmVarieties] = useState('');
+  const [farmActive, setFarmActive] = useState(true);
+  const [isApproving, setIsApproving] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -60,22 +67,74 @@ export const Applications: React.FC = () => {
     };
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: 'new' | 'contacted' | 'approved' | 'rejected') => {
+  const handleStatusChange = async (app: Application, newStatus: 'new' | 'contacted' | 'approved' | 'rejected') => {
+    if (newStatus === 'approved' && !app.farm_id) {
+      setApproveTarget(app);
+      setFarmName(`${app.farmer_name || app.contact_name}'s Farm`);
+      setFarmVarieties(app.varieties_grown || 'To be updated');
+      setFarmActive(true);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('applications')
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq('id', app.id);
 
       if (error) throw error;
 
       setApps((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+        prev.map((item) => (item.id === app.id ? { ...item, status: newStatus } : item))
       );
       showToast(`Application status updated to ${newStatus.toUpperCase()}.`, 'success');
     } catch (err) {
       console.error('Error updating status:', err);
       showToast('Failed to update application status.', 'error');
+    }
+  };
+
+  const handleApproveAndCreateFarm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!approveTarget || !farmName.trim() || !farmVarieties.trim()) return;
+
+    setIsApproving(true);
+    try {
+      const { data: farm, error: farmError } = await supabase
+        .from('farms')
+        .insert([{
+          farm_name: farmName.trim(),
+          farmer_name: approveTarget.farmer_name || approveTarget.contact_name,
+          phone: approveTarget.phone,
+          location: approveTarget.location,
+          varieties: farmVarieties.trim(),
+          acres: approveTarget.orchard_size,
+          since_year: approveTarget.farming_since,
+          story: approveTarget.story,
+          photo_url: approveTarget.photo_url,
+          sort_order: 0,
+          active: farmActive,
+        }])
+        .select('id')
+        .single();
+
+      if (farmError) throw farmError;
+
+      const { error: appError } = await supabase
+        .from('applications')
+        .update({ status: 'approved', farm_id: farm.id })
+        .eq('id', approveTarget.id);
+
+      if (appError) throw appError;
+
+      setApproveTarget(null);
+      await fetchApplications();
+      showToast(`Application approved and farm profile created as ${farmActive ? 'visible' : 'inactive'}.`, 'success');
+    } catch (err) {
+      console.error('Error approving farmer:', err);
+      showToast('Failed to approve and create the farm profile.', 'error');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -112,6 +171,7 @@ export const Applications: React.FC = () => {
             <thead>
               <tr>
                 <th>Date Submitted</th>
+                <th>Photo</th>
                 <th>Contact Name</th>
                 <th>Phone</th>
                 <th>Farmer Name</th>
@@ -128,6 +188,14 @@ export const Applications: React.FC = () => {
                   {/* Date */}
                   <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     {formatDateTime(app.created_at)}
+                  </td>
+
+                  <td>
+                    {app.photo_url ? (
+                      <a href={app.photo_url} target="_blank" rel="noreferrer">
+                        <img className="application-photo-thumb" src={app.photo_url} alt={app.farmer_name || app.contact_name} />
+                      </a>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>No photo</span>}
                   </td>
 
                   {/* Contact Name */}
@@ -193,19 +261,62 @@ export const Applications: React.FC = () => {
                         className="form-control"
                         style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: '100%', height: 'auto' }}
                         value={app.status}
-                        onChange={(e: any) => handleStatusChange(app.id, e.target.value)}
+                        onChange={(e) => handleStatusChange(app, e.target.value as Application['status'])}
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                       </select>
+                      {app.farm_id && <small style={{ color: 'var(--success)' }}>Farm profile created</small>}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {approveTarget && (
+        <div className="modal-backdrop open" onClick={() => setApproveTarget(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Approve and Create Farm Profile</h3>
+              <button className="btn-icon" onClick={() => setApproveTarget(null)} aria-label="Close approval form"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleApproveAndCreateFarm}>
+              <div className="modal-body">
+                {approveTarget.photo_url && (
+                  <img className="approval-farmer-photo" src={approveTarget.photo_url} alt={approveTarget.farmer_name || approveTarget.contact_name} />
+                )}
+                <div className="form-group">
+                  <label htmlFor="approvedFarmName">Farm Name *</label>
+                  <input id="approvedFarmName" className="form-control" value={farmName} onChange={(e) => setFarmName(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="approvedVarieties">Varieties Grown *</label>
+                  <input id="approvedVarieties" className="form-control" value={farmVarieties} onChange={(e) => setFarmVarieties(e.target.value)} required />
+                </div>
+                <label className="farm-visibility-option">
+                  <span>
+                    <strong>Show on Our Farms</strong>
+                    <small>Turn this off to create the profile without publishing it yet.</small>
+                  </span>
+                  <span className="toggle-switch">
+                    <input type="checkbox" checked={farmActive} onChange={(e) => setFarmActive(e.target.checked)} />
+                    <span className="toggle-slider"></span>
+                  </span>
+                </label>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setApproveTarget(null)} disabled={isApproving}>Cancel</button>
+                <button type="submit" className="btn btn-secondary" disabled={isApproving}>
+                  <CheckCircle2 size={16} /> {isApproving ? 'Approving...' : 'Approve and Create Farm'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

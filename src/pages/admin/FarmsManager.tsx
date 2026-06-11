@@ -352,7 +352,7 @@ export const FarmsManager: React.FC = () => {
               <div className="modal-body">
                 {/* Photo Upload Area */}
                 <div className="form-group">
-                  <label>Orchard Cover Photo</label>
+                  <label>Farmer / Farm Photo</label>
                   <label htmlFor="farmImageFile">
                     <div
                       className="image-upload-preview"
@@ -363,7 +363,7 @@ export const FarmsManager: React.FC = () => {
                       {!imagePreviewUrl && (
                         <>
                           <ImageIcon size={32} style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }} />
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Click to upload cover photo</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Click to upload farmer or farm photo</span>
                         </>
                       )}
                       {imagePreviewUrl && (

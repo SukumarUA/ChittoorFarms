@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, MapPin, Trees, Calendar, X } from 'lucide-react';
+import { ShieldCheck, MapPin, Trees, Calendar, X, Image as ImageIcon, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 
@@ -34,6 +34,8 @@ export const Farms: React.FC = () => {
   const [farmingSince, setFarmingSince] = useState('');
   const [varietiesGrown, setVarietiesGrown] = useState('');
   const [story, setStory] = useState('');
+  const [farmerPhoto, setFarmerPhoto] = useState<File | null>(null);
+  const [farmerPhotoPreview, setFarmerPhotoPreview] = useState('');
 
   useEffect(() => {
     const fetchFarms = async () => {
@@ -65,6 +67,35 @@ export const Farms: React.FC = () => {
     setIsApplyOpen(false);
   };
 
+  const handleFarmerPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please choose a valid image file.', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Farmer photo must be smaller than 5 MB.', 'error');
+      return;
+    }
+
+    setFarmerPhoto(file);
+    setFarmerPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const uploadFarmerPhoto = async (file: File) => {
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `applications/${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${fileExt}`;
+    const { error } = await supabase.storage
+      .from('chittoor-farms')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+    if (error) throw error;
+    return supabase.storage.from('chittoor-farms').getPublicUrl(fileName).data.publicUrl;
+  };
+
   const handleSubmitApplication = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -93,6 +124,7 @@ export const Farms: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const photoUrl = farmerPhoto ? await uploadFarmerPhoto(farmerPhoto) : null;
       const { error } = await supabase.from('applications').insert([
         {
           contact_name: contactName.trim(),
@@ -103,6 +135,7 @@ export const Farms: React.FC = () => {
           farming_since: farmingSince ? parseInt(farmingSince) : null,
           varieties_grown: varietiesGrown.trim() || null,
           story: story.trim(),
+          photo_url: photoUrl,
           status: 'new',
         },
       ]);
@@ -121,6 +154,8 @@ export const Farms: React.FC = () => {
       setFarmingSince('');
       setVarietiesGrown('');
       setStory('');
+      setFarmerPhoto(null);
+      setFarmerPhotoPreview('');
     } catch (err) {
       console.error('Error submitting application:', err);
       showToast('Submission failed. Please try again.', 'error');
@@ -222,6 +257,29 @@ export const Farms: React.FC = () => {
 
           <form onSubmit={handleSubmitApplication}>
             <div className="modal-body">
+              <div className="form-group">
+                <label>Farmer Photo</label>
+                <label htmlFor="farmerPhoto" className="application-photo-upload">
+                  {farmerPhotoPreview ? (
+                    <img src={farmerPhotoPreview} alt="Farmer preview" />
+                  ) : (
+                    <span>
+                      <ImageIcon size={28} />
+                      Upload a clear farmer picture
+                    </span>
+                  )}
+                  <span className="application-photo-action"><Upload size={15} /> Choose Photo</span>
+                </label>
+                <input
+                  id="farmerPhoto"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFarmerPhotoChange}
+                  style={{ display: 'none' }}
+                />
+                <small className="form-help">JPG, PNG or WebP, up to 5 MB. This can be used on the Our Farms profile after approval.</small>
+              </div>
+
               <div className="form-group">
                 <label htmlFor="contactName">Your Name *</label>
                 <input
