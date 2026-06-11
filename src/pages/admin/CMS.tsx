@@ -10,12 +10,16 @@ interface TeamMember {
   image_url?: string;
 }
 
+interface NoticeItem {
+  label: string;
+  message: string;
+}
+
 interface SiteSettings {
   hero_heading: string;
   hero_subtext: string;
   banner_img_url: string;
   wa_number: string;
-  notice_board: string;
   team: TeamMember[];
   categories: string[];
 }
@@ -25,14 +29,38 @@ const emptySettings: SiteSettings = {
   hero_subtext: '',
   banner_img_url: '',
   wa_number: '',
-  notice_board: '',
   team: [],
   categories: [],
 };
 
+/** Parse the stored newline-separated string into individual notice items */
+function parseNotices(raw: string): NoticeItem[] {
+  return raw
+    .split('\n')
+    .map((line) => line.replace(/^[•*\-]\s*/, '').trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) return { label: '', message: line };
+      return {
+        label: line.slice(0, colonIdx).trim(),
+        message: line.slice(colonIdx + 1).trim(),
+      };
+    });
+}
+
+/** Serialize notice items back to the stored string format */
+function serializeNotices(notices: NoticeItem[]): string {
+  return notices
+    .filter((n) => n.message.trim())
+    .map((n) => (n.label.trim() ? `${n.label.trim()}: ${n.message.trim()}` : n.message.trim()))
+    .join('\n');
+}
+
 export const CMS: React.FC = () => {
   const { showToast } = useToast();
   const [settings, setSettings] = useState<SiteSettings>(emptySettings);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,10 +80,10 @@ export const CMS: React.FC = () => {
         hero_subtext: data.hero_subtext || '',
         banner_img_url: data.banner_img_url || '',
         wa_number: data.wa_number || '',
-        notice_board: data.notice_board || '',
         team: Array.isArray(data.team) ? data.team : [],
         categories: Array.isArray(data.categories) ? data.categories : [],
       });
+      setNotices(parseNotices(data.notice_board || ''));
     } catch (error) {
       console.error('Error loading CMS settings:', error);
       showToast('Could not load site content.', 'error');
@@ -79,7 +107,7 @@ export const CMS: React.FC = () => {
           hero_subtext: settings.hero_subtext.trim(),
           banner_img_url: settings.banner_img_url.trim(),
           wa_number: settings.wa_number.trim(),
-          notice_board: settings.notice_board.trim(),
+          notice_board: serializeNotices(notices),
           team: settings.team,
           categories: settings.categories,
           updated_at: new Date().toISOString(),
@@ -94,6 +122,22 @@ export const CMS: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const addNotice = () => {
+    setNotices((prev) => [...prev, { label: '', message: '' }]);
+  };
+
+  const updateNotice = (index: number, field: keyof NoticeItem, value: string) => {
+    setNotices((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const removeNotice = (index: number) => {
+    setNotices((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateTeamMember = (index: number, field: keyof TeamMember, value: string) => {
@@ -165,7 +209,48 @@ export const CMS: React.FC = () => {
           <div className="form-group"><label htmlFor="cmsSubtext">Hero Subtitle</label><textarea id="cmsSubtext" className="form-control" value={settings.hero_subtext} onChange={(e) => setSettings({ ...settings, hero_subtext: e.target.value })} rows={4} required /></div>
           <div className="form-group"><label htmlFor="cmsBanner">Hero Background Image URL</label><input type="url" id="cmsBanner" className="form-control" value={settings.banner_img_url} onChange={(e) => setSettings({ ...settings, banner_img_url: e.target.value })} /></div>
           <div className="form-group"><label htmlFor="cmsWhatsapp">WhatsApp Operational Number</label><input id="cmsWhatsapp" className="form-control" placeholder="Digits only, e.g. 919876543210" value={settings.wa_number} onChange={(e) => setSettings({ ...settings, wa_number: e.target.value.replace(/\D/g, '') })} /><small>Leave blank to hide the WhatsApp calls to action.</small></div>
-          <div className="form-group"><label htmlFor="cmsNotices">Notice Board / Farm Updates</label><textarea id="cmsNotices" className="form-control" placeholder="One notice per line" value={settings.notice_board} onChange={(e) => setSettings({ ...settings, notice_board: e.target.value })} rows={6} /><small>Enter one rotating notice per line. Use a label followed by a colon for a notice heading.</small></div>
+
+          {/* Notice Board — individual items */}
+          <div className="form-group">
+            <div className="cms-section-header" style={{ marginBottom: '0.75rem' }}>
+              <label style={{ margin: 0 }}>Notice Board / Farm Updates</label>
+              <button type="button" className="btn btn-outline" onClick={addNotice}>
+                <Plus size={14} /> Add Notice
+              </button>
+            </div>
+            {notices.length === 0 && (
+              <p className="cms-empty-notices">No notices yet. Click "Add Notice" to add one.</p>
+            )}
+            <div className="cms-notices-list">
+              {notices.map((notice, index) => (
+                <div key={index} className="cms-notice-item">
+                  <div className="cms-notice-fields">
+                    <input
+                      className="form-control cms-notice-label-input"
+                      placeholder="Label (e.g. Notice, Orchard Visit)"
+                      value={notice.label}
+                      onChange={(e) => updateNotice(index, 'label', e.target.value)}
+                    />
+                    <input
+                      className="form-control cms-notice-message-input"
+                      placeholder="Message"
+                      value={notice.message}
+                      onChange={(e) => updateNotice(index, 'message', e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-icon cms-notice-remove"
+                    onClick={() => removeNotice(index)}
+                    aria-label="Remove notice"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <small>Each notice rotates on the home page. The label appears as the heading.</small>
+          </div>
         </section>
 
         <section className="dashboard-panel cms-section">
