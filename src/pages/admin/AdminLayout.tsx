@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -9,13 +9,26 @@ import {
   Home,
   LogOut,
   ChevronRight,
-  Sprout
+  Sprout,
+  PanelsTopLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const AdminLayout: React.FC = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const sectionTitles: Record<string, string> = {
+    '/admin': 'Dashboard',
+    '/admin/orders': 'Orders',
+    '/admin/products': 'Products',
+    '/admin/farms': 'Partner Farms',
+    '/admin/visits': 'Visit Bookings',
+    '/admin/applications': 'Farmer Applications',
+    '/admin/cms': 'CMS',
+  };
+  const activeSection = sectionTitles[location.pathname] || 'Admin Workspace';
 
   // Show a clean loading state while verifying auth session
   if (loading) {
@@ -80,6 +93,12 @@ export const AdminLayout: React.FC = () => {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/admin/cms" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+              <PanelsTopLeft size={18} />
+              <span>CMS</span>
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/applications" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <UserCheck size={18} />
               <span>Farmer Apps</span>
@@ -101,7 +120,7 @@ export const AdminLayout: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
             <span>Admin</span>
             <ChevronRight size={14} />
-            <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Dashboard Workspace</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{activeSection}</span>
           </div>
           <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
             Active: <span style={{ color: 'var(--secondary)' }}>{user.email}</span>

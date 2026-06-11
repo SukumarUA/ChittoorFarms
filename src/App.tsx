@@ -27,6 +27,7 @@ import { Products } from './pages/admin/Products';
 import { FarmsManager } from './pages/admin/FarmsManager';
 import { VisitsManager } from './pages/admin/VisitsManager';
 import { Applications } from './pages/admin/Applications';
+import { CMS } from './pages/admin/CMS';
 
 // Public Layout Wrapper
 const PublicLayout: React.FC = () => {
@@ -69,6 +70,7 @@ const App: React.FC = () => {
                 <Route path="farms" element={<FarmsManager />} />
                 <Route path="visits" element={<VisitsManager />} />
                 <Route path="applications" element={<Applications />} />
+                <Route path="cms" element={<CMS />} />
               </Route>
 
               {/* Catch-all Redirect */}
