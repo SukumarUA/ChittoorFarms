@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, MapPin, CalendarDays, Scroll, X, CheckCircle2 } from 'lucide-react';
+import { Phone, MapPin, CalendarDays, Scroll, X, CheckCircle2, PauseCircle, XCircle, Sprout } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 
@@ -166,115 +166,87 @@ export const Applications: React.FC = () => {
           No farmer applications received.
         </div>
       ) : (
-        <div className="table-responsive">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Date Submitted</th>
-                <th>Photo</th>
-                <th>Contact Name</th>
-                <th>Phone</th>
-                <th>Farmer Name</th>
-                <th>Location</th>
-                <th>Orchard Detail</th>
-                <th>Varieties Grown</th>
-                <th>Farmer's Story</th>
-                <th style={{ width: '130px' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apps.map((app) => (
-                <tr key={app.id}>
-                  {/* Date */}
-                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {formatDateTime(app.created_at)}
-                  </td>
-
-                  <td>
-                    {app.photo_url ? (
-                      <a href={app.photo_url} target="_blank" rel="noreferrer">
-                        <img className="application-photo-thumb" src={app.photo_url} alt={app.farmer_name || app.contact_name} />
-                      </a>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>No photo</span>}
-                  </td>
-
-                  {/* Contact Name */}
-                  <td style={{ fontWeight: 600 }}>{app.contact_name}</td>
-
-                  {/* Phone */}
-                  <td>
-                    <a href={`tel:${app.phone}`} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <Phone size={12} />
-                      <span>{app.phone}</span>
-                    </a>
-                  </td>
-
-                  {/* Farmer Name */}
-                  <td>{app.farmer_name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Same as Contact</span>}</td>
-
-                  {/* Location */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <MapPin size={12} style={{ color: 'var(--text-muted)' }} />
-                      <span>{app.location}</span>
+        <div className="farmer-application-grid">
+          {apps.map((app) => (
+            <article key={app.id} className={`farmer-application-card status-${app.status}`}>
+              <div className="farmer-application-card-header">
+                {app.photo_url ? (
+                  <a href={app.photo_url} target="_blank" rel="noreferrer" className="farmer-application-photo-link">
+                    <img className="farmer-application-photo" src={app.photo_url} alt={app.farmer_name || app.contact_name} />
+                  </a>
+                ) : (
+                  <div className="farmer-application-photo farmer-application-photo-empty"><Sprout size={32} /></div>
+                )}
+                <div className="farmer-application-identity">
+                  <div className="farmer-application-title-row">
+                    <div>
+                      <h3>{app.farmer_name || app.contact_name}</h3>
+                      {app.farmer_name && <p>Contact: {app.contact_name}</p>}
                     </div>
-                  </td>
+                    <span className={`badge badge-${app.status}`}>{app.status === 'contacted' ? 'On Hold' : app.status}</span>
+                  </div>
+                  <div className="farmer-application-contact-row">
+                    <a href={`tel:${app.phone}`}><Phone size={15} /> {app.phone}</a>
+                    <span><MapPin size={15} /> {app.location}</span>
+                  </div>
+                </div>
+              </div>
 
-                  {/* Orchard details */}
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.85rem' }}>
-                      {app.orchard_size && (
-                        <span>
-                          <strong>Size:</strong> {app.orchard_size} Acres
-                        </span>
-                      )}
-                      {app.farming_since && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <CalendarDays size={12} />
-                          <span>Since {app.farming_since}</span>
-                        </span>
-                      )}
-                      {!app.orchard_size && !app.farming_since && (
-                        <span style={{ color: 'var(--text-muted)' }}>N/A</span>
-                      )}
-                    </div>
-                  </td>
+              <div className="farmer-application-details">
+                <div className="farmer-application-detail">
+                  <span>Submitted</span>
+                  <strong>{formatDateTime(app.created_at)}</strong>
+                </div>
+                <div className="farmer-application-detail">
+                  <span>Orchard Size</span>
+                  <strong>{app.orchard_size ? `${app.orchard_size} Acres` : 'Not provided'}</strong>
+                </div>
+                <div className="farmer-application-detail">
+                  <span>Farming Since</span>
+                  <strong>{app.farming_since ? <><CalendarDays size={14} /> {app.farming_since}</> : 'Not provided'}</strong>
+                </div>
+              </div>
 
-                  {/* Varieties */}
-                  <td style={{ fontSize: '0.85rem' }}>{app.varieties_grown || 'N/A'}</td>
+              <div className="farmer-application-varieties">
+                <span>Varieties Grown</span>
+                <p>{app.varieties_grown || 'Not provided'}</p>
+              </div>
 
-                  {/* Story */}
-                  <td style={{ fontSize: '0.85rem', maxWidth: '250px', whiteSpace: 'normal' }}>
-                    <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'flex-start' }}>
-                      <Scroll size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '0.15rem' }} />
-                      <span style={{ fontStyle: 'italic' }}>"{app.story}"</span>
-                    </div>
-                  </td>
+              <div className="farmer-application-story">
+                <Scroll size={18} />
+                <div>
+                  <span>Farmer's Story</span>
+                  <p>"{app.story}"</p>
+                </div>
+              </div>
 
-                  {/* Status Dropdown selector */}
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <span className={`badge badge-${app.status}`} style={{ alignSelf: 'flex-start' }}>
-                        {app.status}
-                      </span>
-                      <select
-                        className="form-control"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: '100%', height: 'auto' }}
-                        value={app.status}
-                        onChange={(e) => handleStatusChange(app, e.target.value as Application['status'])}
-                      >
-                        <option value="new">New</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                      {app.farm_id && <small style={{ color: 'var(--success)' }}>Farm profile created</small>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              {app.farm_id && <div className="farmer-profile-created"><CheckCircle2 size={16} /> Farm profile created</div>}
+
+              <div className="farmer-application-actions">
+                <button
+                  className="application-action application-action-accept"
+                  onClick={() => handleStatusChange(app, 'approved')}
+                  disabled={Boolean(app.farm_id)}
+                >
+                  <CheckCircle2 size={18} /> {app.farm_id ? 'Accepted' : 'Accept'}
+                </button>
+                <button
+                  className="application-action application-action-hold"
+                  onClick={() => handleStatusChange(app, 'contacted')}
+                  disabled={app.status === 'contacted' || Boolean(app.farm_id)}
+                >
+                  <PauseCircle size={18} /> {app.status === 'contacted' ? 'On Hold' : 'Hold'}
+                </button>
+                <button
+                  className="application-action application-action-reject"
+                  onClick={() => handleStatusChange(app, 'rejected')}
+                  disabled={app.status === 'rejected' || Boolean(app.farm_id)}
+                >
+                  <XCircle size={18} /> {app.status === 'rejected' ? 'Rejected' : 'Reject'}
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
