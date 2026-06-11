@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronRight,
   Sprout,
-  PanelsTopLeft
+  PanelsTopLeft,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,6 +23,7 @@ export const AdminLayout: React.FC = () => {
   const sectionTitles: Record<string, string> = {
     '/admin': 'Dashboard',
     '/admin/orders': 'Orders',
+    '/admin/payments': 'Payments',
     '/admin/products': 'Products',
     '/admin/farms': 'Partner Farms',
     '/admin/visits': 'Visit Bookings',
@@ -72,6 +74,12 @@ export const AdminLayout: React.FC = () => {
             <NavLink to="/admin/orders" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <ListOrdered size={18} />
               <span>Orders</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/payments" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+              <CreditCard size={18} />
+              <span>Payments</span>
             </NavLink>
           </li>
           <li>

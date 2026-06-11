@@ -28,6 +28,7 @@ import { FarmsManager } from './pages/admin/FarmsManager';
 import { VisitsManager } from './pages/admin/VisitsManager';
 import { Applications } from './pages/admin/Applications';
 import { CMS } from './pages/admin/CMS';
+import { Payments } from './pages/admin/Payments';
 
 // Public Layout Wrapper
 const PublicLayout: React.FC = () => {
@@ -66,6 +67,7 @@ const App: React.FC = () => {
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="orders" element={<Orders />} />
+                <Route path="payments" element={<Payments />} />
                 <Route path="products" element={<Products />} />
                 <Route path="farms" element={<FarmsManager />} />
                 <Route path="visits" element={<VisitsManager />} />

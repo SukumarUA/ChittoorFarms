@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Phone, Calendar, Check, X, RotateCcw, Trash2, ShieldAlert } from 'lucide-react';
+import { Calendar, Check, Phone, RotateCcw, Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 
@@ -27,6 +27,8 @@ interface Order {
   payment_mode: 'UPI' | 'Cash on delivery' | 'Bank transfer' | 'Card' | null;
   payment_amount: number | null;
   payment_reference: string | null;
+  payment_notes: string | null;
+  payment_recorded_at: string | null;
 }
 
 export const Orders: React.FC = () => {
@@ -34,12 +36,16 @@ export const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'fulfilled' | 'failed'>('pending');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Modal states for fulfillment
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'Cash on delivery' | 'Bank transfer' | 'Card'>('UPI');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal states for deletion
@@ -84,7 +90,23 @@ export const Orders: React.FC = () => {
   }, [fetchOrders]);
 
   // Tab Filtering
-  const filteredOrders = orders.filter((o) => o.status === activeTab);
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredOrders = orders.filter((order) => {
+    if (order.status !== activeTab) return false;
+    const searchable = [
+      order.order_number,
+      order.id,
+      order.customer_name,
+      order.phone,
+      order.address,
+      order.payment_reference,
+      ...order.items.map((item) => item.name),
+    ].filter(Boolean).join(' ').toLowerCase();
+    const orderDate = order.created_at.slice(0, 10);
+    return (!normalizedSearch || searchable.includes(normalizedSearch))
+      && (!dateFrom || orderDate >= dateFrom)
+      && (!dateTo || orderDate <= dateTo);
+  });
 
   // Status Change: Fail
   const handleMarkFailed = async (id: string) => {
@@ -112,6 +134,8 @@ export const Orders: React.FC = () => {
           payment_mode: null,
           payment_amount: null,
           payment_reference: null,
+          payment_notes: null,
+          payment_recorded_at: null,
         })
         .eq('id', id);
 
@@ -147,6 +171,7 @@ export const Orders: React.FC = () => {
     setPaymentMode('UPI');
     setPaymentAmount(order.total.toString());
     setPaymentReference('');
+    setPaymentNotes('');
   };
 
   // Submit Fulfilment
@@ -169,6 +194,8 @@ export const Orders: React.FC = () => {
           payment_mode: paymentMode,
           payment_amount: parseFloat(paymentAmount),
           payment_reference: paymentReference.trim() || null,
+          payment_notes: paymentNotes.trim() || null,
+          payment_recorded_at: new Date().toISOString(),
         })
         .eq('id', selectedOrder.id);
 
@@ -218,6 +245,23 @@ export const Orders: React.FC = () => {
         >
           Failed ({orders.filter((o) => o.status === 'failed').length})
         </button>
+      </div>
+
+      <div className="admin-filter-bar">
+        <div className="admin-search-field">
+          <Search size={17} />
+          <input
+            type="search"
+            placeholder="Search order, customer, phone, product, payment reference..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
+        <label className="admin-date-filter">From<input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
+        <label className="admin-date-filter">To<input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
+        {(searchTerm || dateFrom || dateTo) && (
+          <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); }}>Clear</button>
+        )}
       </div>
 
       {loading ? (
@@ -315,20 +359,20 @@ export const Orders: React.FC = () => {
                       {order.status === 'pending' && (
                         <>
                           <button
-                            className="btn btn-secondary"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'flex', gap: '0.25rem' }}
+                            className="order-action-icon accept"
                             onClick={() => handleOpenFulfil(order)}
+                            title="Accept order and record payment"
+                            aria-label={`Accept order ${order.order_number || order.id}`}
                           >
-                            <Check size={14} />
-                            <span>Fulfil</span>
+                            <Check size={18} />
                           </button>
                           <button
-                            className="btn btn-outline"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'flex', gap: '0.25rem', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                            className="order-action-icon reject"
                             onClick={() => handleMarkFailed(order.id)}
+                            title="Reject order"
+                            aria-label={`Reject order ${order.order_number || order.id}`}
                           >
-                            <X size={14} />
-                            <span>Fail</span>
+                            <X size={18} />
                           </button>
                         </>
                       )}
@@ -394,7 +438,7 @@ export const Orders: React.FC = () => {
                     id="paymentMode"
                     className="form-control"
                     value={paymentMode}
-                    onChange={(e: any) => setPaymentMode(e.target.value)}
+                    onChange={(event) => setPaymentMode(event.target.value as typeof paymentMode)}
                     required
                   >
                     <option value="UPI">UPI / Transfer</option>
@@ -402,6 +446,18 @@ export const Orders: React.FC = () => {
                     <option value="Bank transfer">Bank transfer</option>
                     <option value="Card">Card payment</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="paymentNotes">Payment Notes</label>
+                  <textarea
+                    id="paymentNotes"
+                    className="form-control"
+                    placeholder="Optional reconciliation or collection notes"
+                    value={paymentNotes}
+                    onChange={(event) => setPaymentNotes(event.target.value)}
+                    rows={3}
+                  />
                 </div>
 
                 <div className="form-group">
