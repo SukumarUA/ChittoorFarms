@@ -1,0 +1,347 @@
+import React, { useEffect, useState } from 'react';
+import { Users, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useToast } from '../context/ToastContext';
+interface TeamMember {
+  name: string;
+  role: string;
+  bio: string;
+}
+
+export const About: React.FC = () => {
+  const { showToast } = useToast();
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form states
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [preferredFarm, setPreferredFarm] = useState('');
+  const [preferredDate, setPreferredDate] = useState('');
+  const [groupSize, setGroupSize] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [message, setMessage] = useState('');
+
+  // Date picker limit: today or later
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    const fetchTeamData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('team')
+          .eq('id', 'main')
+          .single();
+
+        if (error) throw error;
+        if (data && Array.isArray(data.team)) {
+          setTeam(data.team);
+        }
+      } catch (err) {
+        console.error('Error fetching team settings:', err);
+      }
+    };
+
+    fetchTeamData();
+  }, []);
+
+  const handleOpenBooking = () => {
+    setIsBookingOpen(true);
+  };
+
+  const handleCloseBooking = () => {
+    setIsBookingOpen(false);
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validations
+    if (!name.trim()) {
+      showToast('Please enter your name.', 'error');
+      return;
+    }
+
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      showToast('Please enter a valid 10-digit mobile number.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from('visits').insert([
+        {
+          name: name.trim(),
+          phone: phoneDigits,
+          preferred_farm: preferredFarm.trim() || null,
+          preferred_date: preferredDate || null,
+          group_size: groupSize.trim() || null,
+          purpose: purpose.trim() || null,
+          message: message.trim() || null,
+          status: 'pending',
+        },
+      ]);
+
+      if (error) throw error;
+
+      showToast('Booking requested! We will call you to confirm.', 'success');
+      setIsBookingOpen(false);
+
+      // Reset form
+      setName('');
+      setPhone('');
+      setPreferredFarm('');
+      setPreferredDate('');
+      setGroupSize('');
+      setPurpose('');
+      setMessage('');
+    } catch (err) {
+      console.error('Error submitting booking:', err);
+      showToast('Failed to submit booking request. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      {/* About Section */}
+      <section className="about-grid">
+        <div className="about-story">
+          <h1>Connecting You to the Soil</h1>
+          <p>
+            Chittoor district in Andhra Pradesh is renowned for producing some of India's finest mango varieties, yet traditional supply chains keep growers impoverished and customers eating chemically-ripened, stale fruit.
+          </p>
+          <p>
+            <strong>Chittoor Farms</strong> was founded with a singular purpose: cut out cold houses, middle agents, and chemical sorting. We source directly from orchards, ripen mangoes naturally in traditional hay grass, and deliver them straight to city thresholds within hours of harvesting.
+          </p>
+          <p>
+            This ensures you get mangoes with their rich, original sugars intact, while farmers earn a premium, fair wage directly.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '380px', height: '380px', borderRadius: '50%', overflow: 'hidden', border: '8px solid var(--secondary)', boxShadow: '0 16px 48px rgba(30, 94, 58, 0.18)', background: '#fff' }}>
+            <img
+              src="/CTRFLOGO.jpeg"
+              alt="Chittoor Farms Logo"
+              style={{ width: '100%', height: '100%', transform: 'scale(1.18)', objectFit: 'cover' }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Heritage Section */}
+      <section className="heritage-section" style={{ marginTop: '5rem', marginBottom: '5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <span className="badge" style={{ background: 'rgba(30, 94, 58, 0.05)', color: 'var(--secondary)', border: '1px solid rgba(30, 94, 58, 0.15)', letterSpacing: '0.05em', padding: '0.4rem 1.2rem', marginBottom: '1.25rem' }}>
+            • CHITTOOR, INDIA'S MANGO PARADISE •
+          </span>
+          <h2 style={{ fontSize: '2.5rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>
+            Discover Chittoor's Mango Cultivation Heritage
+          </h2>
+        </div>
+
+        <div className="heritage-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3.5rem', marginBottom: '4rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.
+            </p>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.
+            </p>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.
+            </p>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.
+            </p>
+            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+              However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly—ensuring fair profits reach the growers while enjoying premium, naturally ripened fruit delivered straight to your home.
+            </p>
+          </div>
+        </div>
+
+        {/* Heritage Stat Cards */}
+        <div className="heritage-stats-grid">
+          <div className="heritage-stat-card">
+            <div className="stat-num">100,000+</div>
+            <div className="stat-sub">Acres Cultivated</div>
+            <p className="stat-desc">Mango orchards across Chittoor district — the largest in AP</p>
+          </div>
+          <div className="heritage-stat-card">
+            <div className="stat-num">500,000+</div>
+            <div className="stat-sub">Metric Tonnes / Year</div>
+            <p className="stat-desc">Annual harvest in a good season — one of India's largest</p>
+          </div>
+          <div className="heritage-stat-card">
+            <div className="stat-num">4+</div>
+            <div className="stat-sub">Varieties Per Farm</div>
+            <p className="stat-desc">Average number of mango types grown on a single Chittoor orchard</p>
+          </div>
+          <div className="heritage-stat-card">
+            <div className="stat-num">50+</div>
+            <div className="stat-sub">Pulp Industries</div>
+            <p className="stat-desc">Processing units powered by Chittoor's Totapuri surplus</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Team Section */}
+      {team.length > 0 && (
+        <section className="team-section">
+          <h2 style={{ textAlign: 'center' }}>Meet the Team</h2>
+          <p style={{ textAlign: 'center', maxWidth: '600px', margin: '0.25rem auto 1.5rem auto' }}>
+            The people working behind the scenes to streamline harvesting, packaging, and direct distribution.
+          </p>
+
+          <div className="team-grid">
+            {team.map((member, idx) => (
+              <div key={idx} className="team-card">
+                <div className="team-avatar-placeholder">
+                  <Users size={32} />
+                </div>
+                <h3>{member.name}</h3>
+                <div className="team-role">{member.role}</div>
+                <p className="team-bio">{member.bio}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Book Farm Visit CTA Banner */}
+      <section className="visit-booking-banner">
+        <h2>Experience the Farm Life</h2>
+        <p>
+          Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.
+        </p>
+        <button className="btn btn-secondary" onClick={handleOpenBooking}>
+          Book a farm visit
+        </button>
+      </section>
+
+      {/* Booking Form Modal */}
+      <div className={`modal-backdrop ${isBookingOpen ? 'open' : ''}`} onClick={handleCloseBooking}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Book a Farm Visit</h3>
+            <button className="btn-icon" onClick={handleCloseBooking} aria-label="Close booking modal">
+              <X size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleBookingSubmit}>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="bookingName">Full Name *</label>
+                <input
+                  type="text"
+                  id="bookingName"
+                  className="form-control"
+                  placeholder="e.g. Sukumar"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="bookingPhone">Phone Number (10-digit mobile) *</label>
+                <input
+                  type="tel"
+                  id="bookingPhone"
+                  className="form-control"
+                  placeholder="e.g. 9876543210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="preferredFarm">Which Farm / Preference</label>
+                <input
+                  type="text"
+                  id="preferredFarm"
+                  className="form-control"
+                  placeholder="e.g. Sri Venkateswara Gardens (or leave blank for any)"
+                  value={preferredFarm}
+                  onChange={(e) => setPreferredFarm(e.target.value)}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="visitDate">Preferred Visit Date</label>
+                  <input
+                    type="date"
+                    id="visitDate"
+                    className="form-control"
+                    min={todayStr}
+                    value={preferredDate}
+                    onChange={(e) => setPreferredDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="groupSize">Group Size</label>
+                  <input
+                    type="text"
+                    id="groupSize"
+                    className="form-control"
+                    placeholder="e.g. 2 adults, 1 child"
+                    value={groupSize}
+                    onChange={(e) => setGroupSize(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="purpose">Purpose of Visit</label>
+                <input
+                  type="text"
+                  id="purpose"
+                  className="form-control"
+                  placeholder="e.g. Tourist / media / study / purchase"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="bookingMessage">Additional Message</label>
+                <textarea
+                  id="bookingMessage"
+                  className="form-control"
+                  placeholder="Any requirements or questions..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn btn-outline" onClick={handleCloseBooking} disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-secondary" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
