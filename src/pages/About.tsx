@@ -6,6 +6,7 @@ interface TeamMember {
   name: string;
   role: string;
   bio: string;
+  image_url?: string;
 }
 
 export const About: React.FC = () => {
@@ -208,7 +209,11 @@ export const About: React.FC = () => {
             {team.map((member, idx) => (
               <div key={idx} className="team-card">
                 <div className="team-avatar-placeholder">
-                  <Users size={32} />
+                  {member.image_url ? (
+                    <img className="team-avatar-image" src={member.image_url} alt={member.name} />
+                  ) : (
+                    <Users size={32} />
+                  )}
                 </div>
                 <h3>{member.name}</h3>
                 <div className="team-role">{member.role}</div>
