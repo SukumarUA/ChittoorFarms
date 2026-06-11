@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -18,6 +18,7 @@ export const CartDrawer: React.FC = () => {
   const { showToast } = useToast();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [waNumber, setWaNumber] = useState('');
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -29,6 +30,25 @@ export const CartDrawer: React.FC = () => {
 
   // Date limit: today or later
   const todayStr = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    const loadWhatsAppNumber = async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('wa_number')
+        .eq('id', 'main')
+        .single();
+
+      if (error) {
+        console.error('Could not load WhatsApp number:', error);
+        return;
+      }
+
+      setWaNumber(data?.wa_number || '');
+    };
+
+    void loadWhatsAppNumber();
+  }, []);
 
   const handleCloseDrawer = () => {
     setIsCartOpen(false);
@@ -70,22 +90,26 @@ export const CartDrawer: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const orderId = crypto.randomUUID();
+      const orderItems = cartItems.map((item) => ({
+        product_id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        price: item.price,
+      }));
+
       // Create order in Supabase
       const { error } = await supabase.from('orders').insert([
         {
+          id: orderId,
           customer_name: fullName.trim(),
           phone: phoneDigits,
           address: address.trim(),
           pin_code: pinCode || null,
           preferred_delivery_date: preferredDate || null,
           special_instructions: instructions.trim() || null,
-          items: cartItems.map((item) => ({
-            product_id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            unit: item.unit,
-            price: item.price,
-          })),
+          items: orderItems,
           total: cartTotal,
           status: 'pending',
         },
@@ -113,7 +137,34 @@ export const CartDrawer: React.FC = () => {
         }
       }
 
-      showToast("Order placed! We'll contact you shortly.", 'success');
+      if (waNumber) {
+        const itemLines = orderItems.map(
+          (item) => `• ${item.name}: ${item.quantity} ${item.unit} × ₹${item.price} = ₹${item.quantity * item.price}`,
+        );
+        const whatsappMessage = [
+          '*New Chittoor Farms Order*',
+          `Order Ref: ${orderId.slice(0, 8).toUpperCase()}`,
+          '',
+          `Customer: ${fullName.trim()}`,
+          `Phone: ${phoneDigits}`,
+          `Address: ${address.trim()}${pinCode ? ` - ${pinCode}` : ''}`,
+          `Preferred delivery: ${preferredDate || 'No preference'}`,
+          '',
+          '*Items*',
+          ...itemLines,
+          '',
+          `*Total: ₹${cartTotal}*`,
+          `Payment: COD / UPI`,
+          `Instructions: ${instructions.trim() || 'None'}`,
+        ].join('\n');
+        const whatsappUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        const whatsappTab = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        if (!whatsappTab) window.location.assign(whatsappUrl);
+        showToast('Order placed. Send the prefilled details in WhatsApp to confirm.', 'success');
+      } else {
+        showToast("Order placed! We'll contact you shortly.", 'success');
+      }
+
       clearCart();
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
@@ -125,7 +176,7 @@ export const CartDrawer: React.FC = () => {
       setPinCode('');
       setPreferredDate('');
       setInstructions('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Checkout error:', err);
       showToast('Failed to place order. Please try again.', 'error');
     } finally {
@@ -322,7 +373,7 @@ export const CartDrawer: React.FC = () => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-secondary" disabled={isSubmitting}>
-                {isSubmitting ? 'Placing Order...' : 'Place Order (COD/UPI)'}
+                {isSubmitting ? 'Placing Order...' : waNumber ? 'Place Order & Open WhatsApp' : 'Place Order (COD/UPI)'}
               </button>
             </div>
           </form>
