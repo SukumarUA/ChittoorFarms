@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   Sprout,
   PanelsTopLeft,
   CreditCard,
+  ChevronLeft,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,6 +20,7 @@ export const AdminLayout: React.FC = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('cf-admin-sidebar-collapsed') === 'true');
 
   const sectionTitles: Record<string, string> = {
     '/admin': 'Dashboard',
@@ -52,72 +54,83 @@ export const AdminLayout: React.FC = () => {
     navigate('/');
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem('cf-admin-sidebar-collapsed', String(next));
+      return next;
+    });
+  };
+
   return (
-    <div className="admin-layout">
+    <div className={`admin-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar navigation */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <div className="admin-sidebar-logo">
             <Sprout className="logo-icon" style={{ color: 'var(--primary)' }} />
-            <span>CF Admin Panel</span>
+            <span className="admin-sidebar-label">CF Admin Panel</span>
           </div>
+          <button type="button" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={isSidebarCollapsed ? 'Expand admin navigation' : 'Collapse admin navigation'} title={isSidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}>
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
         </div>
 
         <ul className="admin-sidebar-nav">
           <li>
-            <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin" end title={isSidebarCollapsed ? 'Dashboard' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <span className="admin-sidebar-label">Dashboard</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/orders" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/orders" title={isSidebarCollapsed ? 'Orders' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <ListOrdered size={18} />
-              <span>Orders</span>
+              <span className="admin-sidebar-label">Orders</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/payments" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/payments" title={isSidebarCollapsed ? 'Payments' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <CreditCard size={18} />
-              <span>Payments</span>
+              <span className="admin-sidebar-label">Payments</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/products" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/products" title={isSidebarCollapsed ? 'Products' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <ShoppingBag size={18} />
-              <span>Products</span>
+              <span className="admin-sidebar-label">Products</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/farms" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/farms" title={isSidebarCollapsed ? 'Partner Farms' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <Home size={18} />
-              <span>Partner Farms</span>
+              <span className="admin-sidebar-label">Partner Farms</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/visits" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/visits" title={isSidebarCollapsed ? 'Visit Bookings' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <CalendarDays size={18} />
-              <span>Visit Bookings</span>
+              <span className="admin-sidebar-label">Visit Bookings</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/cms" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/cms" title={isSidebarCollapsed ? 'CMS' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <PanelsTopLeft size={18} />
-              <span>CMS</span>
+              <span className="admin-sidebar-label">CMS</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/applications" className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+            <NavLink to="/admin/applications" title={isSidebarCollapsed ? 'Farmer Applications' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <UserCheck size={18} />
-              <span>Farmer Apps</span>
+              <span className="admin-sidebar-label">Farmer Apps</span>
             </NavLink>
           </li>
         </ul>
 
         <div className="admin-sidebar-footer">
-          <button className="btn btn-outline" onClick={handleLogout} style={{ width: '100%', display: 'flex', gap: '0.5rem', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <button className="btn btn-outline admin-signout-button" onClick={handleLogout} title={isSidebarCollapsed ? 'Sign Out' : undefined}>
             <LogOut size={16} />
-            <span>Sign Out</span>
+            <span className="admin-sidebar-label">Sign Out</span>
           </button>
         </div>
       </aside>
