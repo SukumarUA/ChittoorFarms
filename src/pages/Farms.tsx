@@ -469,16 +469,20 @@ export const Farms: React.FC = () => {
                   {farm.varieties.split(',').length > 3 && <span>+{farm.varieties.split(',').length - 3}</span>}
                 </div>
 
-                {farm.farm_update && (
-                  <div className="farm-card-update">
-                    <Megaphone size={14} />
-                    <span><strong>Updates from Farm</strong>{farm.farm_update}</span>
-                  </div>
-                )}
-
                 <div className="farm-card-actions">
                   <button type="button" className="btn btn-secondary farm-view-button" onClick={() => setFarmModal({ type: 'details', farm })}>View Farm</button>
                   <div className="farm-card-media-actions">
+                    {farm.farm_update && (
+                      <div className="farm-update-tooltip-wrapper">
+                        <button type="button" className="farm-card-icon-button update-btn" aria-label="Farm update">
+                          <Megaphone size={17} />
+                        </button>
+                        <div className="farm-update-tooltip">
+                          <strong>Update</strong>
+                          <p>{farm.farm_update}</p>
+                        </div>
+                      </div>
+                    )}
                     {farm.instagram_url && getInstagramPermalink(farm.instagram_url) && (
                       <button type="button" className="farm-card-icon-button instagram" onClick={() => setFarmModal({ type: 'instagram', farm })} aria-label={`View ${farm.farmer_name} on Instagram`} title="Instagram"><Images size={17} /></button>
                     )}
