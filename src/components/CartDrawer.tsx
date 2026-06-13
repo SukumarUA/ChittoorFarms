@@ -125,25 +125,8 @@ export const CartDrawer: React.FC = () => {
       if (error) throw error;
       if (!orderReference) throw new Error('The order reference was not generated.');
 
-      // Update product stock levels locally (reducing product stock by ordered quantity)
-      // Since it's client-side, we try our best. The real database stock check is on the admin end,
-      // but let's deduct the stock client-side to be clean.
-      for (const item of cartItems) {
-        // Fetch current product stock
-        const { data: currentProduct } = await supabase
-          .from('products')
-          .select('stock')
-          .eq('id', item.id)
-          .single();
-
-        if (currentProduct) {
-          const newStock = Math.max(0, currentProduct.stock - item.quantity);
-          await supabase
-            .from('products')
-            .update({ stock: newStock })
-            .eq('id', item.id);
-        }
-      }
+      // Stock is now decremented atomically inside create_order on the server.
+      // No client-side stock update needed.
 
       if (waNumber) {
         const itemLines = orderItems.flatMap((item) => {
@@ -223,7 +206,15 @@ export const CartDrawer: React.FC = () => {
             ) : (
               cartItems.map((item) => (
                 <div key={item.id} className="cart-item">
-                  <img src={item.image_url} alt={item.name} className="cart-item-img" />
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="cart-item-img"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1553135933-0d13db7f0ece?auto=format&fit=crop&q=80&w=200';
+                    }}
+                  />
                   <div className="cart-item-details">
                     <div>
                       <div className="cart-item-name">{item.name}</div>
@@ -232,18 +223,17 @@ export const CartDrawer: React.FC = () => {
                       </div>
                     </div>
                     <div className="cart-item-qty">
-                      {/* Quantity controls (Assume stock max is 999 if not specified, 
-                          but we fetch stock levels from products list inside Shop anyway) */}
                       <button
                         className="qty-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1, 999)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.stock)}
                       >
                         -
                       </button>
                       <span className="qty-val">{item.quantity}</span>
                       <button
                         className="qty-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1, 999)}
+                        disabled={item.quantity >= item.stock}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.stock)}
                       >
                         +
                       </button>

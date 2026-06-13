@@ -29,7 +29,7 @@ export const Login: React.FC = () => {
       return;
     }
 
-    if (email.trim().toLowerCase() !== 'chinthalapudisukumar@gmail.com') {
+    if (email.trim().toLowerCase() !== (import.meta.env.VITE_ADMIN_EMAIL ?? '').toLowerCase()) {
       showToast('Access Denied. Only the designated administrator account is permitted.', 'error');
       return;
     }

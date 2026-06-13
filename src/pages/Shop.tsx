@@ -69,7 +69,8 @@ export const Shop: React.FC = () => {
     };
 
     loadData();
-  }, [showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // fetch once on mount — showToast is stable but not a fetch dependency
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredProducts = products.filter((product) => {
@@ -234,9 +235,9 @@ export const Shop: React.FC = () => {
                             price: product.price,
                             unit: product.unit,
                             image_url: product.image_url,
+                            stock: product.stock,
                           },
-                          1,
-                          product.stock
+                          1
                         )
                       }
                     >

@@ -99,7 +99,11 @@ export const Orders: React.FC = () => {
           fetchOrders();
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('Orders real-time subscription error:', err);
+        }
+      });
 
     return () => {
       subscription.unsubscribe();
@@ -213,8 +217,8 @@ export const Orders: React.FC = () => {
     e.preventDefault();
     if (!selectedOrder) return;
 
-    if (!paymentAmount || parseFloat(paymentAmount) < 0) {
-      showToast('Please enter a valid payment amount.', 'error');
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      showToast('Please enter a valid payment amount greater than ₹0.', 'error');
       return;
     }
 
@@ -309,12 +313,6 @@ export const Orders: React.FC = () => {
   };
 
   const exportPdf = () => {
-    const reportWindow = window.open('', '_blank');
-    if (!reportWindow) {
-      showToast('Please allow pop-ups to generate the PDF report.', 'warning');
-      return;
-    }
-    reportWindow.opener = null;
     const logoUrl = `${window.location.origin}/CTRFLOGO.jpeg`;
 
     const rows = filteredOrders.map((order) => `
@@ -328,10 +326,22 @@ export const Orders: React.FC = () => {
       </tr>
     `).join('');
 
-    reportWindow.document.write(`<!doctype html><html><head><title>Chittoor Farms Orders</title><style>
+    const html = `<!doctype html><html><head><title>Chittoor Farms Orders</title><style>
       body{font-family:Arial,sans-serif;color:#1f2937;padding:24px}.watermark{position:fixed;top:52%;left:50%;width:420px;max-width:52vw;transform:translate(-50%,-50%);opacity:.14;mix-blend-mode:multiply;z-index:2;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-content{position:relative;z-index:1}h1{color:#17633f;margin-bottom:4px}p{color:#64748b;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:11px;background:rgba(255,255,255,.45)}th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top;background:transparent}th{background:#17633f;color:white}.summary{display:flex;gap:24px;margin-top:14px;font-weight:bold}@page{size:landscape;margin:12mm}
-    </style></head><body><img class="watermark" src="${escapeHtml(logoUrl)}" alt=""><main class="report-content"><h1>Chittoor Farms Orders</h1><p>${escapeHtml(activeTab.toUpperCase())} orders report generated ${escapeHtml(new Date().toLocaleString('en-IN'))}</p><div class="summary"><span>Records: ${filteredOrders.length}</span><span>Total value: Rs.${filteredOrders.reduce((sum, order) => sum + Number(order.total), 0).toLocaleString('en-IN')}</span></div><table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Delivery</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></main><script>window.onload=()=>{window.print();}</script></body></html>`);
-    reportWindow.document.close();
+    </style></head><body><img class="watermark" src="${escapeHtml(logoUrl)}" alt=""><main class="report-content"><h1>Chittoor Farms Orders</h1><p>${escapeHtml(activeTab.toUpperCase())} orders report generated ${escapeHtml(new Date().toLocaleString('en-IN'))}</p><div class="summary"><span>Records: ${filteredOrders.length}</span><span>Total value: Rs.${filteredOrders.reduce((sum, order) => sum + Number(order.total), 0).toLocaleString('en-IN')}</span></div><table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Delivery</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></main><script>window.onload=()=>{window.print();window.onafterprint=()=>{URL.revokeObjectURL(window.location.href);};};</script></body></html>`;
+
+    // Use a Blob URL instead of document.write — avoids the deprecated API and
+    // works reliably across modern browsers including mobile.
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const reportWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+    if (!reportWindow) {
+      URL.revokeObjectURL(blobUrl);
+      showToast('Please allow pop-ups to generate the PDF report.', 'warning');
+      return;
+    }
+    // Clean up blob URL after the window has had time to load
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
   };
 
   return (

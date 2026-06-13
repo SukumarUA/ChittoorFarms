@@ -7,11 +7,12 @@ export interface CartItem {
   unit: string;
   quantity: number;
   image_url: string;
+  stock: number;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>, quantity: number, maxStock: number) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'>, quantity: number) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number, maxStock: number) => void;
   clearCart: () => void;
@@ -27,14 +28,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount — validate shape before trusting
   useEffect(() => {
     const savedCart = localStorage.getItem('chittoor_farms_cart');
     if (savedCart) {
       try {
-        setCartItems(JSON.parse(savedCart));
+        const parsed: unknown = JSON.parse(savedCart);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every(
+            (item) =>
+              typeof item === 'object' &&
+              item !== null &&
+              typeof (item as CartItem).id === 'string' &&
+              typeof (item as CartItem).name === 'string' &&
+              typeof (item as CartItem).price === 'number' &&
+              typeof (item as CartItem).quantity === 'number' &&
+              typeof (item as CartItem).stock === 'number'
+          )
+        ) {
+          setCartItems(parsed as CartItem[]);
+        } else {
+          console.warn('Discarding invalid cart data from localStorage.');
+          localStorage.removeItem('chittoor_farms_cart');
+        }
       } catch (e) {
         console.error('Failed to parse saved cart data', e);
+        localStorage.removeItem('chittoor_farms_cart');
       }
     }
   }, []);
@@ -44,14 +64,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('chittoor_farms_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number, maxStock: number) => {
+  const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.id === item.id);
       if (existingItem) {
-        const newQty = Math.min(existingItem.quantity + quantity, maxStock);
+        const newQty = Math.min(existingItem.quantity + quantity, item.stock);
         return prevItems.map((i) => (i.id === item.id ? { ...i, quantity: newQty } : i));
       }
-      return [...prevItems, { ...item, quantity: Math.min(quantity, maxStock) }];
+      return [...prevItems, { ...item, quantity: Math.min(quantity, item.stock) }];
     });
     setIsCartOpen(true);
   };

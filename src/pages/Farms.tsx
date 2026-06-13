@@ -9,6 +9,76 @@ const useFarmerImageFallback = (event: React.SyntheticEvent<HTMLImageElement>) =
 };
 import { useToast } from '../context/ToastContext';
 
+// All mandals in Chittoor district (alphabetical)
+const CHITTOOR_MANDALS = [
+  'B. Kothakota',
+  'Baireddipalle',
+  'Bangarupalem',
+  'Buchinaidu Kandriga',
+  'Chandragiri',
+  'Chinnagottigallu',
+  'Chittoor Rural',
+  'Chittoor Urban',
+  'Chowdepalle',
+  'Doravari Chatram',
+  'Gangadhara Nellore',
+  'Gangavaram',
+  'Gudipala',
+  'Gudupalle',
+  'Gudur',
+  'Gurramkonda',
+  'Irala',
+  'Kalakada',
+  'Kalikiri',
+  'Kambhamvaripalle',
+  'Karvetinagar',
+  'Kuppam',
+  'Kurabalakota',
+  'Madanapalle',
+  'Mulakalacheruvu',
+  'Nagalapuram',
+  'Nagari',
+  'Naidupeta',
+  'Narayanavanam',
+  'Nimmanapalle',
+  'Nindra',
+  'Pakala',
+  'Palamaner',
+  'Palasamudram',
+  'Peddamandyam',
+  'Peddapanjani',
+  'Peddathippasamudram',
+  'Penumuru',
+  'Pileru',
+  'Pulicherla',
+  'Punganur',
+  'Puthalapattu',
+  'Ramakuppam',
+  'Ramasamudram',
+  'Renigunta',
+  'Rompicherla',
+  'Sambepalle',
+  'Santhipuram',
+  'Sathyavedu',
+  'Somala',
+  'Srikalahasti',
+  'Srirangarajapuram',
+  'Thamballapalle',
+  'Thavanampalle',
+  'Tirupati Rural',
+  'Tirupati Urban',
+  'Vadamalapeta',
+  'Valmikipuram',
+  'Varadaiahpalem',
+  'Vayalpadu',
+  'Vedurukuppam',
+  'Venkatagirikota',
+  'Vijayapuram',
+  'Yadamari',
+  'Yerpedu',
+  'Yerravaripalem',
+];
+
 interface Farm {
   id: string;
   farm_name: string;
@@ -106,8 +176,11 @@ export const Farms: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [farmerName, setFarmerName] = useState('');
   const [farmType, setFarmType] = useState('');
-  const [district, setDistrict] = useState('');
+  // 'Chittoor' | 'Other' | ''
+  const [districtChoice, setDistrictChoice] = useState('');
+  const [customDistrict, setCustomDistrict] = useState('');
   const [mandal, setMandal] = useState('');
+  const [customMandal, setCustomMandal] = useState('');
   const [village, setVillage] = useState('');
   const [pincode, setPincode] = useState('');
   const [orchardSize, setOrchardSize] = useState('');
@@ -116,6 +189,18 @@ export const Farms: React.FC = () => {
   const [story, setStory] = useState('');
   const [farmerPhoto, setFarmerPhoto] = useState<File | null>(null);
   const [farmerPhotoPreview, setFarmerPhotoPreview] = useState('');
+
+  // Derived values used at submit time
+  const resolvedDistrict = districtChoice === 'Other' ? customDistrict : districtChoice;
+  const resolvedMandal = districtChoice === 'Other' ? customMandal : mandal;
+
+  const handleDistrictChoiceChange = (value: string) => {
+    setDistrictChoice(value);
+    // Reset mandal selections when district type changes
+    setMandal('');
+    setCustomMandal('');
+    setCustomDistrict('');
+  };
 
   useEffect(() => {
     const fetchFarms = async () => {
@@ -220,7 +305,7 @@ export const Farms: React.FC = () => {
       return;
     }
 
-    if (!farmType || !district.trim() || !mandal.trim() || !village.trim()) {
+    if (!farmType || !resolvedDistrict.trim() || !resolvedMandal.trim() || !village.trim()) {
       showToast('Please select a farm type and complete the farm location.', 'error');
       return;
     }
@@ -244,10 +329,10 @@ export const Farms: React.FC = () => {
           contact_name: contactName.trim(),
           phone: phoneDigits,
           farmer_name: farmerName.trim() || null,
-          location: [village, mandal, district].map((item) => item.trim()).join(', '),
+          location: [village, resolvedMandal, resolvedDistrict].map((item) => item.trim()).join(', '),
           farm_type: farmType,
-          district: district.trim(),
-          mandal: mandal.trim(),
+          district: resolvedDistrict.trim(),
+          mandal: resolvedMandal.trim(),
           village: village.trim(),
           pincode: pincode.trim(),
           orchard_size: orchardSize ? parseFloat(orchardSize) : null,
@@ -269,8 +354,10 @@ export const Farms: React.FC = () => {
       setPhone('');
       setFarmerName('');
       setFarmType('');
-      setDistrict('');
+      setDistrictChoice('');
+      setCustomDistrict('');
       setMandal('');
+      setCustomMandal('');
       setVillage('');
       setPincode('');
       setOrchardSize('');
@@ -602,16 +689,67 @@ export const Farms: React.FC = () => {
                 </select>
               </div>
 
+              {/* District — dropdown: Chittoor or Other */}
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="district">District *</label>
-                  <input id="district" className="form-control" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="e.g. Chittoor" required />
+                  <label htmlFor="districtChoice">District *</label>
+                  <select
+                    id="districtChoice"
+                    className="form-control"
+                    value={districtChoice}
+                    onChange={(e) => handleDistrictChoiceChange(e.target.value)}
+                    required
+                  >
+                    <option value="">Select district</option>
+                    <option value="Chittoor">Chittoor</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
+
+                {/* Mandal — dropdown when Chittoor, text when Other */}
                 <div className="form-group">
                   <label htmlFor="mandal">Mandal *</label>
-                  <input id="mandal" className="form-control" value={mandal} onChange={(e) => setMandal(e.target.value)} placeholder="e.g. Puthalapattu" required />
+                  {districtChoice === 'Chittoor' ? (
+                    <select
+                      id="mandal"
+                      className="form-control"
+                      value={mandal}
+                      onChange={(e) => setMandal(e.target.value)}
+                      required
+                    >
+                      <option value="">Select mandal</option>
+                      {CHITTOOR_MANDALS.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id="mandal"
+                      className="form-control"
+                      value={customMandal}
+                      onChange={(e) => setCustomMandal(e.target.value)}
+                      placeholder="Enter mandal name"
+                      required={districtChoice === 'Other'}
+                      disabled={!districtChoice}
+                    />
+                  )}
                 </div>
               </div>
+
+              {/* Free-text district name when Other is selected */}
+              {districtChoice === 'Other' && (
+                <div className="form-group">
+                  <label htmlFor="customDistrict">District Name *</label>
+                  <input
+                    id="customDistrict"
+                    className="form-control"
+                    value={customDistrict}
+                    onChange={(e) => setCustomDistrict(e.target.value)}
+                    placeholder="Enter your district name"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">
