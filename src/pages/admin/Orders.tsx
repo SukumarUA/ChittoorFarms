@@ -99,7 +99,7 @@ export const Orders: React.FC = () => {
           fetchOrders();
         }
       )
-      .subscribe((status, err) => {
+      .subscribe((_status, err) => {
         if (err) {
           console.error('Orders real-time subscription error:', err);
         }
