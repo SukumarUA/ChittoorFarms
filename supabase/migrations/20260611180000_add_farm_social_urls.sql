@@ -1,0 +1,3 @@
+ALTER TABLE public.farms
+ADD COLUMN IF NOT EXISTS instagram_url TEXT,
+ADD COLUMN IF NOT EXISTS youtube_url TEXT;

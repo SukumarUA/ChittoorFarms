@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS public.farms (
     since_year INTEGER,
     story TEXT NOT NULL,
     photo_url TEXT,
+    instagram_url TEXT,
+    youtube_url TEXT,
+    farm_update TEXT,
+    feature_update_on_notice_board BOOLEAN NOT NULL DEFAULT false,
+    farm_type TEXT,
+    district TEXT,
+    mandal TEXT,
+    village TEXT,
+    pincode TEXT,
     sort_order INTEGER DEFAULT 0,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -63,6 +72,11 @@ CREATE TABLE IF NOT EXISTS public.applications (
     phone TEXT NOT NULL,
     farmer_name TEXT,
     location TEXT NOT NULL,
+    farm_type TEXT,
+    district TEXT,
+    mandal TEXT,
+    village TEXT,
+    pincode TEXT,
     orchard_size NUMERIC,
     farming_since INTEGER,
     varieties_grown TEXT,
@@ -94,6 +108,8 @@ CREATE TABLE IF NOT EXISTS public.settings (
     notice_board TEXT DEFAULT '',
     team JSONB NOT NULL DEFAULT '[]'::jsonb,
     categories JSONB NOT NULL DEFAULT '["Mangoes", "Coconuts", "Pulses", "Coldpressed Oils"]'::jsonb,
+    farm_types JSONB NOT NULL DEFAULT '["Mango Farm", "Rice Farm", "Coconut Farm", "Dairy Farm"]'::jsonb,
+    shop_cta_text TEXT NOT NULL DEFAULT 'Shop Mangoes',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) not null
 );
 
@@ -198,13 +214,13 @@ VALUES (
     '[
         {
             "name": "Sukumar Chinthalapudi",
-            "role": "Founder & Operations Head",
+            "role": "Founder",
             "bio": "Sukumar is dedicated to empowering local farmers in Chittoor district and bringing clean, unadulterated fruit directly to urban customers."
         },
         {
-            "name": "K. Raghunath",
-            "role": "Chief Orchardist",
-            "bio": "Raghunath oversees our partner farms, ensuring our mango trees receive organic care and fruit is picked at optimal ripeness."
+            "name": "Dilip Vuppalapati",
+            "role": "Co-Founder & Supply Chain",
+            "bio": "Dilip leads supply chain operations, coordinating with partner farms to ensure every harvest reaches customers fresh and on time."
         }
     ]'::jsonb,
     '["Mangoes", "Coconuts", "Pulses", "Coldpressed Oils"]'::jsonb

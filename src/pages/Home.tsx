@@ -10,19 +10,44 @@ interface SettingsData {
   banner_img_url: string;
   wa_number: string;
   notice_board: string;
+  shop_cta_text: string;
 }
+
+interface FeaturedFarmUpdate {
+  id: string;
+  farm_name: string;
+  farm_update: string;
+}
+
+const greetings = [
+  { native: 'नमस्ते', english: 'Namaste', language: 'hi' },
+  { native: 'নমস্কার', english: 'Nomoshkar', language: 'bn' },
+  { native: 'नमस्कार', english: 'Namaskar', language: 'mr' },
+  { native: 'నమస్కారం', english: 'Namaskaram', language: 'te' },
+  { native: 'வணக்கம்', english: 'Vanakkam', language: 'ta' },
+  { native: 'નમસ્તે', english: 'Namaste', language: 'gu' },
+  { native: 'السلام علیکم', english: 'Assalamu Alaikum', language: 'ur', direction: 'rtl' as const },
+  { native: 'ನಮಸ್ಕಾರ', english: 'Namaskara', language: 'kn' },
+  { native: 'ନମସ୍କାର', english: 'Namaskar', language: 'or' },
+  { native: 'നമസ്കാരം', english: 'Namaskaram', language: 'ml' },
+  { native: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ', english: 'Sat Sri Akal', language: 'pa' },
+  { native: 'নমস্কাৰ', english: 'Nomoskar', language: 'as' },
+  { native: 'प्रणाम', english: 'Pranam', language: 'hi' },
+];
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [featuredFarmUpdates, setFeaturedFarmUpdates] = useState<FeaturedFarmUpdate[]>([]);
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0);
+  const [activeGreetingIndex, setActiveGreetingIndex] = useState(0);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const { data, error } = await supabase
           .from('settings')
-          .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board')
+          .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board, shop_cta_text')
           .eq('id', 'main')
           .single();
 
@@ -34,6 +59,25 @@ export const Home: React.FC = () => {
     };
 
     fetchSettings();
+
+    const fetchFeaturedFarmUpdates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('farms')
+          .select('id, farm_name, farm_update')
+          .eq('active', true)
+          .eq('feature_update_on_notice_board', true)
+          .not('farm_update', 'is', null)
+          .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+        setFeaturedFarmUpdates((data || []).filter((farm) => farm.farm_update?.trim()));
+      } catch (err) {
+        console.error('Error fetching featured farm updates:', err);
+      }
+    };
+
+    fetchFeaturedFarmUpdates();
   }, []);
 
   // Default fallbacks in case Supabase loading fails or is empty
@@ -42,10 +86,13 @@ export const Home: React.FC = () => {
     settings?.hero_subtext ||
     'Experience the unparalleled taste of premium, naturally ripened mangoes directly from local family orchards. Delivered fresh to you within hours of picking, bypassing cold storage entirely.';
   const waNumber = settings?.wa_number || '919390033516';
+  const shopCtaText = settings?.shop_cta_text || 'Shop Mangoes';
   
   const noticeBoardText = settings?.notice_board ?? 
     "• Notice: Fresh Banganapalli harvest arriving this Friday! Pre-orders are open now.\n• Orchard Visits: Bookings for Sri Venkateswara Farm visits are available for the coming Sunday.";
-  const notices = noticeBoardText.split('\n').filter(line => line.trim() !== '');
+  const cmsNotices = noticeBoardText.split('\n').filter(line => line.trim() !== '');
+  const farmNotices = featuredFarmUpdates.map((farm) => `${farm.farm_name}: ${farm.farm_update}`);
+  const notices = [...cmsNotices, ...farmNotices];
   const currentNoticeIndex = notices.length > 0 ? activeNoticeIndex % notices.length : 0;
 
   useEffect(() => {
@@ -57,6 +104,14 @@ export const Home: React.FC = () => {
 
     return () => window.clearTimeout(rotationTimer);
   }, [activeNoticeIndex, notices.length]);
+
+  useEffect(() => {
+    const rotationTimer = window.setInterval(() => {
+      setActiveGreetingIndex((currentIndex) => (currentIndex + 1) % greetings.length);
+    }, 3200);
+
+    return () => window.clearInterval(rotationTimer);
+  }, []);
 
   const formatNotice = (notice: string) => {
     const cleanNotice = notice.replace(/^[•*-]\s*/, '').trim();
@@ -78,11 +133,25 @@ export const Home: React.FC = () => {
       <section className="hero-section">
         <div className="container hero-container">
           <div className="hero-content">
+            <div className="hero-greeting" aria-live="polite" aria-atomic="true">
+              <div key={activeGreetingIndex} className="hero-greeting-content">
+                <span
+                  className="hero-greeting-native"
+                  lang={greetings[activeGreetingIndex].language}
+                  dir={greetings[activeGreetingIndex].direction}
+                >
+                  {greetings[activeGreetingIndex].native}
+                </span>
+                <span className="hero-greeting-english">
+                  ({greetings[activeGreetingIndex].english})
+                </span>
+              </div>
+            </div>
             <h1 className="hero-heading">{heroHeading}</h1>
             <p className="hero-subtext">{heroSubtext}</p>
             <div className="hero-actions">
               <button className="btn btn-primary" onClick={() => navigate('/shop')}>
-                Shop Mangoes
+                {shopCtaText}
               </button>
               <button className="btn btn-outline-green" onClick={() => navigate('/farms')}>
                 Explore Partner Farms

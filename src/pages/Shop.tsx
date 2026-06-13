@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -23,6 +23,7 @@ export const Shop: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { addToCart, cartItems, updateQuantity } = useCart();
   const { showToast } = useToast();
@@ -70,9 +71,17 @@ export const Shop: React.FC = () => {
     loadData();
   }, [showToast]);
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredProducts = products.filter((product) => {
-    if (filter === 'all') return true;
-    return product.category === filter;
+    const matchesCategory = filter === 'all' || product.category === filter;
+    const searchable = [
+      product.name,
+      product.category,
+      product.use,
+      product.description,
+      product.unit,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return matchesCategory && (!normalizedSearch || searchable.includes(normalizedSearch));
   });
 
   return (
@@ -103,13 +112,31 @@ export const Shop: React.FC = () => {
         </div>
       </div>
 
+      <div className="shop-search-toolbar">
+        <div className="shop-search-box">
+          <Search size={19} />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search products, categories, or uses..."
+            aria-label="Search shop products"
+          />
+          {searchTerm && <button type="button" onClick={() => setSearchTerm('')} aria-label="Clear product search"><X size={16} /></button>}
+        </div>
+        <span className="shop-result-count">{filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'}</span>
+      </div>
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           🔄 Loading fresh harvest...
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-          No products listed under this category at the moment.
+        <div className="shop-search-empty">
+          <Search size={30} />
+          <h3>No matching products found</h3>
+          <p>Try another product name, category, use, or clear the current filters.</p>
+          <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); setFilter('all'); }}>Clear Filters</button>
         </div>
       ) : (
         <div className="grid-responsive">

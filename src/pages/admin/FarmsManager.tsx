@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Megaphone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+
+const farmerImageFallback = '/CTRFLOGO.jpeg';
+const useFarmerImageFallback = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = farmerImageFallback;
+};
 
 interface Farm {
   id: string;
@@ -14,6 +20,15 @@ interface Farm {
   since_year: number;
   story: string;
   photo_url: string;
+  instagram_url: string | null;
+  youtube_url: string | null;
+  farm_update: string | null;
+  feature_update_on_notice_board: boolean;
+  farm_type: string | null;
+  district: string | null;
+  mandal: string | null;
+  village: string | null;
+  pincode: string | null;
   sort_order: number;
   active: boolean;
 }
@@ -32,11 +47,20 @@ export const FarmsManager: React.FC = () => {
   const [farmName, setFarmName] = useState('');
   const [farmerName, setFarmerName] = useState('');
   const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('');
+  const [farmTypes, setFarmTypes] = useState<string[]>([]);
+  const [farmType, setFarmType] = useState('');
+  const [district, setDistrict] = useState('');
+  const [mandal, setMandal] = useState('');
+  const [village, setVillage] = useState('');
+  const [pincode, setPincode] = useState('');
   const [varieties, setVarieties] = useState('');
   const [acres, setAcres] = useState('');
   const [sinceYear, setSinceYear] = useState('');
   const [story, setStory] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [farmUpdate, setFarmUpdate] = useState('');
+  const [featureUpdateOnNoticeBoard, setFeatureUpdateOnNoticeBoard] = useState(false);
   const [sortOrder, setSortOrder] = useState('0');
   const [active, setActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -45,7 +69,7 @@ export const FarmsManager: React.FC = () => {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<Farm | null>(null);
 
-  const fetchFarms = async () => {
+  const fetchFarms = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -61,22 +85,29 @@ export const FarmsManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
-    fetchFarms();
-  }, []);
+    void Promise.resolve().then(fetchFarms);
+    supabase.from('settings').select('farm_types').eq('id', 'main').single().then(({ data }) => {
+      setFarmTypes(Array.isArray(data?.farm_types) ? data.farm_types : []);
+    });
+  }, [fetchFarms]);
 
   const handleOpenAdd = () => {
     setEditTarget(null);
     setFarmName('');
     setFarmerName('');
     setPhone('');
-    setLocation('');
+    setFarmType(''); setDistrict(''); setMandal(''); setVillage(''); setPincode('');
     setVarieties('');
     setAcres('');
     setSinceYear('');
     setStory('');
+    setInstagramUrl('');
+    setYoutubeUrl('');
+    setFarmUpdate('');
+    setFeatureUpdateOnNoticeBoard(false);
     setSortOrder('0');
     setActive(true);
     setImageFile(null);
@@ -89,11 +120,15 @@ export const FarmsManager: React.FC = () => {
     setFarmName(farm.farm_name);
     setFarmerName(farm.farmer_name);
     setPhone(farm.phone);
-    setLocation(farm.location);
+    setFarmType(farm.farm_type || ''); setDistrict(farm.district || ''); setMandal(farm.mandal || ''); setVillage(farm.village || ''); setPincode(farm.pincode || '');
     setVarieties(farm.varieties);
     setAcres(farm.acres?.toString() || '');
     setSinceYear(farm.since_year?.toString() || '');
     setStory(farm.story);
+    setInstagramUrl(farm.instagram_url || '');
+    setYoutubeUrl(farm.youtube_url || '');
+    setFarmUpdate(farm.farm_update || '');
+    setFeatureUpdateOnNoticeBoard(farm.feature_update_on_notice_board);
     setSortOrder(farm.sort_order.toString());
     setActive(farm.active);
     setImageFile(null);
@@ -118,6 +153,30 @@ export const FarmsManager: React.FC = () => {
     } catch (err) {
       console.error('Toggle active error:', err);
       showToast('Failed to update farm visibility.', 'error');
+    }
+  };
+
+  const handleToggleNoticeBoard = async (farm: Farm) => {
+    if (!farm.farm_update?.trim() && !farm.feature_update_on_notice_board) {
+      showToast('Add an update to this farm before featuring it on the homepage.', 'error');
+      return;
+    }
+
+    const nextValue = !farm.feature_update_on_notice_board;
+    try {
+      const { error } = await supabase
+        .from('farms')
+        .update({ feature_update_on_notice_board: nextValue })
+        .eq('id', farm.id);
+
+      if (error) throw error;
+      setFarms((previous) => previous.map((item) => (
+        item.id === farm.id ? { ...item, feature_update_on_notice_board: nextValue } : item
+      )));
+      showToast(`Farm update ${nextValue ? 'added to' : 'removed from'} the homepage notice board.`, 'success');
+    } catch (err) {
+      console.error('Toggle farm notice error:', err);
+      showToast('Failed to update homepage notice visibility.', 'error');
     }
   };
 
@@ -148,8 +207,12 @@ export const FarmsManager: React.FC = () => {
   const handleSaveFarm = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!farmName.trim() || !farmerName.trim() || !phone || !location.trim() || !varieties.trim() || !story.trim()) {
+    if (!farmName.trim() || !farmerName.trim() || !phone || !farmType || !district.trim() || !mandal.trim() || !village.trim() || !pincode.trim() || !varieties.trim() || !story.trim()) {
       showToast('Please fill all required fields.', 'error');
+      return;
+    }
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      showToast('Please enter a valid 6-digit pincode.', 'error');
       return;
     }
 
@@ -167,7 +230,12 @@ export const FarmsManager: React.FC = () => {
         farm_name: farmName.trim(),
         farmer_name: farmerName.trim(),
         phone: phone.replace(/\D/g, ''),
-        location: location.trim(),
+        location: [village, mandal, district].map((item) => item.trim()).filter(Boolean).join(', '),
+        farm_type: farmType,
+        district: district.trim(),
+        mandal: mandal.trim(),
+        village: village.trim(),
+        pincode: pincode.trim(),
         varieties: varieties.trim(),
         acres: acres ? parseFloat(acres) : null,
         since_year: sinceYear ? parseInt(sinceYear) : null,
@@ -175,6 +243,10 @@ export const FarmsManager: React.FC = () => {
         sort_order: parseInt(sortOrder) || 0,
         active,
         photo_url: finalImageUrl || null,
+        instagram_url: instagramUrl.trim() || null,
+        youtube_url: youtubeUrl.trim() || null,
+        farm_update: farmUpdate.trim() || null,
+        feature_update_on_notice_board: Boolean(farmUpdate.trim()) && featureUpdateOnNoticeBoard,
       };
 
       if (editTarget) {
@@ -198,9 +270,9 @@ export const FarmsManager: React.FC = () => {
 
       setIsModalOpen(false);
       fetchFarms();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving farm:', err);
-      showToast(err.message || 'Failed to save farm details.', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to save farm details.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -252,11 +324,13 @@ export const FarmsManager: React.FC = () => {
               <tr>
                 <th>Photo</th>
                 <th>Farm Name</th>
+                <th>Type</th>
                 <th>Farmer Name</th>
                 <th>Phone</th>
                 <th>Location</th>
                 <th>Acres</th>
                 <th>Varieties</th>
+                <th style={{ width: '120px' }}>Homepage Update</th>
                 <th style={{ width: '100px' }}>Active</th>
                 <th>Sort Order</th>
                 <th style={{ width: '120px' }}>Actions</th>
@@ -268,14 +342,16 @@ export const FarmsManager: React.FC = () => {
                   {/* Photo Thumbnail */}
                   <td>
                     <img
-                      src={farm.photo_url || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&q=80&w=150'}
+                      src={farm.photo_url || farmerImageFallback}
                       alt={farm.farm_name}
                       style={{ width: '55px', height: '55px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', background: 'var(--bg-muted)' }}
+                      onError={useFarmerImageFallback}
                     />
                   </td>
 
                   {/* Names */}
                   <td style={{ fontWeight: 600 }}>{farm.farm_name}</td>
+                  <td>{farm.farm_type || 'Not set'}</td>
                   <td>{farm.farmer_name}</td>
 
                   {/* Phone */}
@@ -292,6 +368,18 @@ export const FarmsManager: React.FC = () => {
                   {/* Varieties list */}
                   <td style={{ fontSize: '0.8rem', maxWidth: '180px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={farm.varieties}>
                     {farm.varieties}
+                  </td>
+
+                  <td>
+                    <label className="toggle-switch" title={farm.farm_update ? 'Feature this update on the homepage notice board' : 'Add a farm update first'}>
+                      <input
+                        type="checkbox"
+                        checked={farm.feature_update_on_notice_board}
+                        onChange={() => handleToggleNoticeBoard(farm)}
+                        disabled={!farm.farm_update?.trim()}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
                   </td>
 
                   {/* Active Toggle Switch */}
@@ -396,6 +484,16 @@ export const FarmsManager: React.FC = () => {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label htmlFor="fmType">Type of Farm *</label>
+                  <select id="fmType" className="form-control" value={farmType} onChange={(e) => setFarmType(e.target.value)} required>
+                    <option value="">Select farm type</option>
+                    {farmType && !farmTypes.includes(farmType) && <option value={farmType}>{farmType}</option>}
+                    {farmTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                  <small>Farm types are managed in CMS.</small>
+                </div>
+
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="fmFarmer">Farmer / Caretaker Name *</label>
@@ -424,26 +522,16 @@ export const FarmsManager: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="fmLoc">Farm Location (Village, Mandal, District) *</label>
-                  <input
-                    type="text"
-                    id="fmLoc"
-                    className="form-control"
-                    placeholder="e.g. Puthalapattu mandal, Chittoor"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    required
-                  />
-                </div>
+                <div className="form-row"><div className="form-group"><label>District *</label><input className="form-control" value={district} onChange={(e) => setDistrict(e.target.value)} required /></div><div className="form-group"><label>Mandal *</label><input className="form-control" value={mandal} onChange={(e) => setMandal(e.target.value)} required /></div></div>
+                <div className="form-row"><div className="form-group"><label>Village *</label><input className="form-control" value={village} onChange={(e) => setVillage(e.target.value)} required /></div><div className="form-group"><label>Pincode *</label><input className="form-control" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))} required /></div></div>
 
                 <div className="form-group">
-                  <label htmlFor="fmVarieties">Varieties Grown (comma-separated) *</label>
+                  <label htmlFor="fmVarieties">Produce, Breeds or Varieties (comma-separated) *</label>
                   <input
                     type="text"
                     id="fmVarieties"
                     className="form-control"
-                    placeholder="e.g. Banganapalli, Totapuri, Neelum"
+                    placeholder="e.g. Mangoes, Sona Masoori rice, dairy milk"
                     value={varieties}
                     onChange={(e) => setVarieties(e.target.value)}
                     required
@@ -452,7 +540,7 @@ export const FarmsManager: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="fmAcres">Orchard Size (Acres)</label>
+                    <label htmlFor="fmAcres">Farm Size (Acres)</label>
                     <input
                       type="number"
                       step="0.1"
@@ -488,6 +576,65 @@ export const FarmsManager: React.FC = () => {
                     rows={4}
                     required
                   />
+                </div>
+
+                <div className="farm-update-admin-panel">
+                  <div className="farm-update-admin-heading">
+                    <Megaphone size={19} />
+                    <div>
+                      <strong>Updates from Farm</strong>
+                      <small>Share a current harvest, orchard, visit, or availability update.</small>
+                    </div>
+                  </div>
+                  <textarea
+                    id="fmUpdate"
+                    className="form-control"
+                    placeholder="e.g. Banganapalli picking begins this Friday. Pre-orders are now open."
+                    value={farmUpdate}
+                    onChange={(e) => {
+                      setFarmUpdate(e.target.value);
+                      if (!e.target.value.trim()) setFeatureUpdateOnNoticeBoard(false);
+                    }}
+                    rows={3}
+                    maxLength={280}
+                  />
+                  <div className="farm-update-admin-footer">
+                    <span>{farmUpdate.length}/280</span>
+                    <label className="farm-update-feature-option">
+                      <input
+                        type="checkbox"
+                        checked={featureUpdateOnNoticeBoard}
+                        disabled={!farmUpdate.trim()}
+                        onChange={(e) => setFeatureUpdateOnNoticeBoard(e.target.checked)}
+                      />
+                      <span>Feature this update on the homepage notice board</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="fmInstagram">Instagram Post or Reel URL</label>
+                    <input
+                      type="url"
+                      id="fmInstagram"
+                      className="form-control"
+                      placeholder="https://www.instagram.com/p/..."
+                      value={instagramUrl}
+                      onChange={(e) => setInstagramUrl(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="fmYouTube">YouTube Video URL</label>
+                    <input
+                      type="url"
+                      id="fmYouTube"
+                      className="form-control"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-row">

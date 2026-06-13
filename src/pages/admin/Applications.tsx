@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Phone, MapPin, CalendarDays, Scroll, X, CheckCircle2, PauseCircle, XCircle, Sprout } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Phone, MapPin, CalendarDays, Scroll, X, CheckCircle2, PauseCircle, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+
+const farmerImageFallback = '/CTRFLOGO.jpeg';
+const useFarmerImageFallback = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = farmerImageFallback;
+};
 
 interface Application {
   id: string;
@@ -10,6 +16,11 @@ interface Application {
   phone: string;
   farmer_name: string | null;
   location: string;
+  farm_type: string | null;
+  district: string | null;
+  mandal: string | null;
+  village: string | null;
+  pincode: string | null;
   orchard_size: number | null;
   farming_since: number | null;
   varieties_grown: string | null;
@@ -28,13 +39,15 @@ export const Applications: React.FC = () => {
   const [farmVarieties, setFarmVarieties] = useState('');
   const [farmActive, setFarmActive] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'new' | 'contacted'>('new');
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('applications')
         .select('*')
+        .in('status', ['new', 'contacted'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -45,10 +58,10 @@ export const Applications: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
-    fetchApplications();
+    void Promise.resolve().then(fetchApplications);
 
     // Subscribe to real-time changes
     const subscription = supabase
@@ -65,7 +78,7 @@ export const Applications: React.FC = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchApplications]);
 
   const handleStatusChange = async (app: Application, newStatus: 'new' | 'contacted' | 'approved' | 'rejected') => {
     if (newStatus === 'approved' && !app.farm_id) {
@@ -85,7 +98,9 @@ export const Applications: React.FC = () => {
       if (error) throw error;
 
       setApps((prev) =>
-        prev.map((item) => (item.id === app.id ? { ...item, status: newStatus } : item))
+        newStatus === 'approved' || newStatus === 'rejected'
+          ? prev.filter((item) => item.id !== app.id)
+          : prev.map((item) => (item.id === app.id ? { ...item, status: newStatus } : item))
       );
       showToast(`Application status updated to ${newStatus.toUpperCase()}.`, 'success');
     } catch (err) {
@@ -107,6 +122,11 @@ export const Applications: React.FC = () => {
           farmer_name: approveTarget.farmer_name || approveTarget.contact_name,
           phone: approveTarget.phone,
           location: approveTarget.location,
+          farm_type: approveTarget.farm_type,
+          district: approveTarget.district,
+          mandal: approveTarget.mandal,
+          village: approveTarget.village,
+          pincode: approveTarget.pincode,
           varieties: farmVarieties.trim(),
           acres: approveTarget.orchard_size,
           since_year: approveTarget.farming_since,
@@ -127,8 +147,8 @@ export const Applications: React.FC = () => {
 
       if (appError) throw appError;
 
+      setApps((prev) => prev.filter((item) => item.id !== approveTarget.id));
       setApproveTarget(null);
-      await fetchApplications();
       showToast(`Application approved and farm profile created as ${farmActive ? 'visible' : 'inactive'}.`, 'success');
     } catch (err) {
       console.error('Error approving farmer:', err);
@@ -148,34 +168,58 @@ export const Applications: React.FC = () => {
     });
   };
 
+  const visibleApplications = apps.filter((app) => app.status === activeTab);
+  const newCount = apps.filter((app) => app.status === 'new').length;
+  const holdCount = apps.filter((app) => app.status === 'contacted').length;
+
   return (
     <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2>Manage Farmer Partnership Applications</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Review farmer partnership applications submitted from the Our Farms page.
-        </p>
+      <div className="application-page-heading">
+        <div>
+          <h2>Manage Farmer Partnership Applications</h2>
+          <p>Review farmer partnership applications submitted from the Our Farms page.</p>
+        </div>
+        <div className="application-review-tabs" role="tablist" aria-label="Farmer application status">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'new'}
+            className={activeTab === 'new' ? 'active' : ''}
+            onClick={() => setActiveTab('new')}
+          >
+            New Applications <span>{newCount}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'contacted'}
+            className={activeTab === 'contacted' ? 'active' : ''}
+            onClick={() => setActiveTab('contacted')}
+          >
+            On Hold <span>{holdCount}</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           🔄 Loading applications...
         </div>
-      ) : apps.length === 0 ? (
+      ) : visibleApplications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-          No farmer applications received.
+          {activeTab === 'new' ? 'No new farmer applications.' : 'No applications are currently on hold.'}
         </div>
       ) : (
         <div className="farmer-application-grid">
-          {apps.map((app) => (
+          {visibleApplications.map((app) => (
             <article key={app.id} className={`farmer-application-card status-${app.status}`}>
               <div className="farmer-application-card-header">
                 {app.photo_url ? (
                   <a href={app.photo_url} target="_blank" rel="noreferrer" className="farmer-application-photo-link">
-                    <img className="farmer-application-photo" src={app.photo_url} alt={app.farmer_name || app.contact_name} />
+                    <img className="farmer-application-photo" src={app.photo_url} alt={app.farmer_name || app.contact_name} onError={useFarmerImageFallback} />
                   </a>
                 ) : (
-                  <div className="farmer-application-photo farmer-application-photo-empty"><Sprout size={32} /></div>
+                  <img className="farmer-application-photo" src={farmerImageFallback} alt="Chittoor Farms" />
                 )}
                 <div className="farmer-application-identity">
                   <div className="farmer-application-title-row">
@@ -198,7 +242,11 @@ export const Applications: React.FC = () => {
                   <strong>{formatDateTime(app.created_at)}</strong>
                 </div>
                 <div className="farmer-application-detail">
-                  <span>Orchard Size</span>
+                  <span>Farm Type</span>
+                  <strong>{app.farm_type || 'Not provided'}</strong>
+                </div>
+                <div className="farmer-application-detail">
+                  <span>Farm Size</span>
                   <strong>{app.orchard_size ? `${app.orchard_size} Acres` : 'Not provided'}</strong>
                 </div>
                 <div className="farmer-application-detail">
@@ -208,7 +256,7 @@ export const Applications: React.FC = () => {
               </div>
 
               <div className="farmer-application-varieties">
-                <span>Varieties Grown</span>
+                <span>Produce / Breeds / Varieties</span>
                 <p>{app.varieties_grown || 'Not provided'}</p>
               </div>
 
@@ -232,10 +280,10 @@ export const Applications: React.FC = () => {
                 </button>
                 <button
                   className="application-action application-action-hold"
-                  onClick={() => handleStatusChange(app, 'contacted')}
-                  disabled={app.status === 'contacted' || Boolean(app.farm_id)}
+                  onClick={() => handleStatusChange(app, app.status === 'contacted' ? 'new' : 'contacted')}
+                  disabled={Boolean(app.farm_id)}
                 >
-                  <PauseCircle size={18} /> {app.status === 'contacted' ? 'On Hold' : 'Hold'}
+                  <PauseCircle size={18} /> {app.status === 'contacted' ? 'Return to New' : 'Hold'}
                 </button>
                 <button
                   className="application-action application-action-reject"
@@ -259,9 +307,12 @@ export const Applications: React.FC = () => {
             </div>
             <form onSubmit={handleApproveAndCreateFarm}>
               <div className="modal-body">
-                {approveTarget.photo_url && (
-                  <img className="approval-farmer-photo" src={approveTarget.photo_url} alt={approveTarget.farmer_name || approveTarget.contact_name} />
-                )}
+                <img
+                  className="approval-farmer-photo"
+                  src={approveTarget.photo_url || farmerImageFallback}
+                  alt={approveTarget.farmer_name || approveTarget.contact_name}
+                  onError={useFarmerImageFallback}
+                />
                 <div className="form-group">
                   <label htmlFor="approvedFarmName">Farm Name *</label>
                   <input id="approvedFarmName" className="form-control" value={farmName} onChange={(e) => setFarmName(e.target.value)} required />

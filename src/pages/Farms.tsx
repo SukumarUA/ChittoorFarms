@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, MapPin, Trees, Calendar, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { ShieldCheck, MapPin, Trees, Calendar, X, Image as ImageIcon, Upload, Images, Video, ExternalLink, Search, UserPlus, Megaphone, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+const farmerImageFallback = '/CTRFLOGO.jpeg';
+const useFarmerImageFallback = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = farmerImageFallback;
+};
 import { useToast } from '../context/ToastContext';
 
 interface Farm {
@@ -9,27 +15,101 @@ interface Farm {
   farmer_name: string;
   phone: string;
   location: string;
+  farm_type: string | null;
+  district: string | null;
+  mandal: string | null;
+  village: string | null;
+  pincode: string | null;
   varieties: string;
   acres: number;
   since_year: number;
   story: string;
   photo_url: string;
+  instagram_url: string | null;
+  youtube_url: string | null;
+  farm_update: string | null;
+  feature_update_on_notice_board: boolean;
   sort_order: number;
   active: boolean;
 }
+
+type FarmModal = { type: 'details' | 'instagram' | 'youtube'; farm: Farm } | null;
+
+declare global {
+  interface Window {
+    instgrm?: { Embeds: { process: () => void } };
+  }
+}
+
+const getInstagramPermalink = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.endsWith('instagram.com')) return null;
+    const match = parsed.pathname.match(/^\/(p|reel|tv)\/([^/]+)/);
+    return match ? `https://www.instagram.com/${match[1]}/${match[2]}/` : null;
+  } catch {
+    return null;
+  }
+};
+
+const getYouTubeEmbedUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    let videoId = '';
+    if (parsed.hostname === 'youtu.be') videoId = parsed.pathname.slice(1).split('/')[0];
+    if (parsed.hostname.includes('youtube.com')) {
+      videoId = parsed.searchParams.get('v') || parsed.pathname.match(/^\/(shorts|embed)\/([^/]+)/)?.[2] || '';
+    }
+    return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : null;
+  } catch {
+    return null;
+  }
+};
 
 export const Farms: React.FC = () => {
   const { showToast } = useToast();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(true);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [farmModal, setFarmModal] = useState<FarmModal>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [farmSearch, setFarmSearch] = useState('');
+  const [farmTypes, setFarmTypes] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [districtFilter, setDistrictFilter] = useState('');
+  const [mandalFilter, setMandalFilter] = useState('');
+  const [villageFilter, setVillageFilter] = useState('');
+
+  useEffect(() => {
+    const shouldLoadInstagram = farmModal?.type === 'instagram'
+      || (farmModal?.type === 'details' && Boolean(farmModal.farm.instagram_url));
+    if (!shouldLoadInstagram) return;
+
+    const processEmbed = () => window.instgrm?.Embeds.process();
+    const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://www.instagram.com/embed.js"]');
+    if (existingScript) {
+      processEmbed();
+      existingScript.addEventListener('load', processEmbed, { once: true });
+      return () => existingScript.removeEventListener('load', processEmbed);
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://www.instagram.com/embed.js';
+    script.async = true;
+    script.onload = processEmbed;
+    document.body.appendChild(script);
+  }, [farmModal]);
 
   // Form states
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [farmerName, setFarmerName] = useState('');
-  const [location, setLocation] = useState('');
+  const [farmType, setFarmType] = useState('');
+  const [district, setDistrict] = useState('');
+  const [mandal, setMandal] = useState('');
+  const [village, setVillage] = useState('');
+  const [pincode, setPincode] = useState('');
   const [orchardSize, setOrchardSize] = useState('');
   const [farmingSince, setFarmingSince] = useState('');
   const [varietiesGrown, setVarietiesGrown] = useState('');
@@ -40,14 +120,14 @@ export const Farms: React.FC = () => {
   useEffect(() => {
     const fetchFarms = async () => {
       try {
-        const { data, error } = await supabase
-          .from('farms')
-          .select('*')
-          .eq('active', true)
-          .order('sort_order', { ascending: true });
+        const [{ data, error }, { data: settings }] = await Promise.all([
+          supabase.from('farms').select('*').eq('active', true).order('sort_order', { ascending: true }),
+          supabase.from('settings').select('farm_types').eq('id', 'main').single(),
+        ]);
 
         if (error) throw error;
         setFarms(data || []);
+        setFarmTypes(Array.isArray(settings?.farm_types) ? settings.farm_types : []);
       } catch (err) {
         console.error('Error fetching farms:', err);
         showToast('Failed to load partner farms.', 'error');
@@ -61,6 +141,35 @@ export const Farms: React.FC = () => {
 
   const handleOpenForm = () => {
     setIsApplyOpen(true);
+  };
+
+  const normalizedFarmSearch = farmSearch.trim().toLowerCase();
+  const normalize = (value: string | null | undefined) => value?.trim().toLowerCase() || '';
+  const filteredFarms = farms.filter((farm) => {
+    const matchesSearch = !normalizedFarmSearch || [
+      farm.farm_name,
+      farm.farmer_name,
+      farm.location,
+      farm.farm_type,
+      farm.district,
+      farm.mandal,
+      farm.village,
+      farm.pincode,
+      farm.varieties,
+    ].join(' ').toLowerCase().includes(normalizedFarmSearch);
+    const locationText = normalize(farm.location);
+    return matchesSearch
+      && (!typeFilter || normalize(farm.farm_type) === normalize(typeFilter))
+      && (!districtFilter || (normalize(farm.district) || locationText).includes(normalize(districtFilter)))
+      && (!mandalFilter || (normalize(farm.mandal) || locationText).includes(normalize(mandalFilter)))
+      && (!villageFilter || (normalize(farm.village) || locationText).includes(normalize(villageFilter)));
+  });
+  const activeFilterCount = [typeFilter, districtFilter, mandalFilter, villageFilter].filter(Boolean).length;
+  const clearFilters = () => {
+    setTypeFilter('');
+    setDistrictFilter('');
+    setMandalFilter('');
+    setVillageFilter('');
   };
 
   const handleCloseForm = () => {
@@ -111,8 +220,13 @@ export const Farms: React.FC = () => {
       return;
     }
 
-    if (!location.trim()) {
-      showToast('Please enter your orchard village/district.', 'error');
+    if (!farmType || !district.trim() || !mandal.trim() || !village.trim()) {
+      showToast('Please select a farm type and complete the farm location.', 'error');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      showToast('Please enter a valid 6-digit pincode.', 'error');
       return;
     }
 
@@ -130,7 +244,12 @@ export const Farms: React.FC = () => {
           contact_name: contactName.trim(),
           phone: phoneDigits,
           farmer_name: farmerName.trim() || null,
-          location: location.trim(),
+          location: [village, mandal, district].map((item) => item.trim()).join(', '),
+          farm_type: farmType,
+          district: district.trim(),
+          mandal: mandal.trim(),
+          village: village.trim(),
+          pincode: pincode.trim(),
           orchard_size: orchardSize ? parseFloat(orchardSize) : null,
           farming_since: farmingSince ? parseInt(farmingSince) : null,
           varieties_grown: varietiesGrown.trim() || null,
@@ -149,7 +268,11 @@ export const Farms: React.FC = () => {
       setContactName('');
       setPhone('');
       setFarmerName('');
-      setLocation('');
+      setFarmType('');
+      setDistrict('');
+      setMandal('');
+      setVillage('');
+      setPincode('');
       setOrchardSize('');
       setFarmingSince('');
       setVarietiesGrown('');
@@ -165,13 +288,48 @@ export const Farms: React.FC = () => {
   };
 
   return (
-    <div className="container">
+    <div className="container farms-page">
       <div className="farms-header">
-        <h1>Our Partner Farms</h1>
+        <h1>Meet our partner farmers</h1>
         <p>
-          We work closely with local family orchards in Chittoor district. By purchasing from us, you directly support their sustainable practices.
+          Meet verified local growers and producers bringing authentic farm-fresh goods closer to you.
         </p>
       </div>
+
+      <div className="farms-directory-toolbar">
+        <div className="farms-search-row">
+          <div className="farms-search-box">
+            <Search size={19} />
+            <input
+              type="search"
+              value={farmSearch}
+              onChange={(event) => setFarmSearch(event.target.value)}
+              placeholder="Search farmer, farm, location, or produce..."
+              aria-label="Search partner farms"
+            />
+            {farmSearch && <button type="button" onClick={() => setFarmSearch('')} aria-label="Clear farm search"><X size={16} /></button>}
+          </div>
+          <button type="button" className={`farms-filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters} aria-label="Filter partner farms">
+            <SlidersHorizontal size={19} />
+            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          </button>
+        </div>
+        <span className="farms-result-count">{filteredFarms.length} farm{filteredFarms.length === 1 ? '' : 's'}</span>
+        <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join Chittoor Farms</button>
+      </div>
+
+      {showFilters && (
+        <div className="farms-advanced-filters">
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filter by farm type">
+            <option value="">All farm types</option>
+            {farmTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+          <input value={districtFilter} onChange={(event) => setDistrictFilter(event.target.value)} placeholder="District" aria-label="Filter by district" />
+          <input value={mandalFilter} onChange={(event) => setMandalFilter(event.target.value)} placeholder="Mandal" aria-label="Filter by mandal" />
+          <input value={villageFilter} onChange={(event) => setVillageFilter(event.target.value)} placeholder="Village" aria-label="Filter by village" />
+          <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0}>Clear filters</button>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
@@ -181,64 +339,182 @@ export const Farms: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           No partner farms listed at this moment.
         </div>
+      ) : filteredFarms.length === 0 ? (
+        <div className="farms-search-empty">
+          <Search size={30} />
+          <h3>No matching farms found</h3>
+          <p>Try another farmer, location, farm type, or product.</p>
+          <button type="button" className="btn btn-outline" onClick={() => { setFarmSearch(''); clearFilters(); }}>Clear Search & Filters</button>
+        </div>
       ) : (
-        <div>
-          {farms.map((farm) => (
-            <div key={farm.id} className="farm-card">
-              <div className="farm-img-wrapper">
-                <img
-                  src={farm.photo_url || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&q=80&w=600'}
-                  alt={farm.farm_name}
-                  className="farm-img"
-                />
+        <div className="farm-card-grid">
+          {filteredFarms.map((farm) => (
+            <article key={farm.id} className="farm-card">
+              <div className="farm-card-top">
+                <div className="farm-img-wrapper">
+                  <img
+                    src={farm.photo_url || farmerImageFallback}
+                    alt={farm.farmer_name}
+                    className="farm-img"
+                    onError={useFarmerImageFallback}
+                  />
+                </div>
+                <span className="farm-verified-mark" title="Verified Partner" aria-label="Verified Partner">
+                  <ShieldCheck size={16} />
+                </span>
               </div>
 
               <div className="farm-body">
-                <div className="farm-title-row">
-                  <h2>{farm.farm_name}</h2>
-                  <span className="badge badge-approved" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                    <ShieldCheck size={12} /> Verified Partner
-                  </span>
+                <p className="farm-card-name">{farm.farm_name}</p>
+                {farm.farm_type && <span className="farm-card-type">{farm.farm_type}</span>}
+                <h2>{farm.farmer_name}</h2>
+                <p className="farm-card-location"><MapPin size={14} /> {farm.location}</p>
+
+                <div className="farm-card-stat-row">
+                  {farm.acres && <span><Trees size={14} /> {farm.acres} acres</span>}
+                  {farm.since_year && <span><Calendar size={14} /> Since {farm.since_year}</span>}
                 </div>
 
-                <div className="farm-meta">
-                  <div className="farm-meta-item">
-                    <strong>Farmer:</strong> {farm.farmer_name}
-                  </div>
-                  <div className="farm-meta-item">
-                    <MapPin size={14} />
-                    <span>{farm.location}</span>
-                  </div>
-                  {farm.acres && (
-                    <div className="farm-meta-item">
-                      <Trees size={14} />
-                      <span>{farm.acres} Acres</span>
-                    </div>
-                  )}
-                  {farm.since_year && (
-                    <div className="farm-meta-item">
-                      <Calendar size={14} />
-                      <span>Farming since {farm.since_year}</span>
-                    </div>
-                  )}
+                <div className="farm-produce-list" aria-label={`Produce: ${farm.varieties}`}>
+                  {farm.varieties.split(',').slice(0, 3).map((variety) => (
+                    <span key={variety.trim()}>{variety.trim()}</span>
+                  ))}
+                  {farm.varieties.split(',').length > 3 && <span>+{farm.varieties.split(',').length - 3}</span>}
                 </div>
 
-                <p className="farm-story">"{farm.story}"</p>
+                {farm.farm_update && (
+                  <div className="farm-card-update">
+                    <Megaphone size={14} />
+                    <span><strong>Updates from Farm</strong>{farm.farm_update}</span>
+                  </div>
+                )}
 
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  <strong>Varieties Grown:</strong> {farm.varieties}
+                <div className="farm-card-actions">
+                  <button type="button" className="btn btn-secondary farm-view-button" onClick={() => setFarmModal({ type: 'details', farm })}>View Farm</button>
+                  <div className="farm-card-media-actions">
+                    {farm.instagram_url && getInstagramPermalink(farm.instagram_url) && (
+                      <button type="button" className="farm-card-icon-button instagram" onClick={() => setFarmModal({ type: 'instagram', farm })} aria-label={`View ${farm.farmer_name} on Instagram`} title="Instagram"><Images size={17} /></button>
+                    )}
+                    {farm.youtube_url && getYouTubeEmbedUrl(farm.youtube_url) && (
+                      <button type="button" className="farm-card-icon-button youtube" onClick={() => setFarmModal({ type: 'youtube', farm })} aria-label={`Watch ${farm.farmer_name} on YouTube`} title="YouTube"><Video size={18} /></button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
+        </div>
+      )}
+
+      {farmModal && (
+        <div className={`modal-backdrop open ${farmModal.type === 'details' ? 'farm-details-backdrop' : ''}`} onClick={() => setFarmModal(null)}>
+          <div className={`modal-content farm-profile-modal farm-profile-modal-${farmModal.type}`} onClick={(event) => event.stopPropagation()}>
+            {farmModal.type === 'details' ? (
+              <button type="button" className="farm-profile-close" onClick={() => setFarmModal(null)} aria-label="Close farm profile"><X size={20} /></button>
+            ) : (
+              <div className="modal-header">
+                <h3>{farmModal.type === 'instagram' ? `${farmModal.farm.farmer_name} on Instagram` : `${farmModal.farm.farmer_name} on YouTube`}</h3>
+                <button type="button" className="btn-icon" onClick={() => setFarmModal(null)} aria-label="Close farm popup"><X size={20} /></button>
+              </div>
+            )}
+            <div className="modal-body">
+              {farmModal.type === 'details' && (
+                <article className="farm-clean-profile">
+                  <div className="farm-profile-hero">
+                    <div className="farm-profile-portrait-wrap">
+                      <div className="farm-profile-portrait">
+                        <img src={farmModal.farm.photo_url || farmerImageFallback} alt={farmModal.farm.farmer_name} onError={useFarmerImageFallback} />
+                      </div>
+                      <span className="farm-profile-verified"><ShieldCheck size={15} /> Verified Chittoor Farms Partner</span>
+                    </div>
+                    <div className="farm-profile-intro">
+                      <p className="farm-profile-farm-name">{farmModal.farm.farm_name}</p>
+                      {farmModal.farm.farm_type && <span className="farm-card-type">{farmModal.farm.farm_type}</span>}
+                      <h2>{farmModal.farm.farmer_name}</h2>
+                      <p className="farm-profile-location"><MapPin size={18} /> {farmModal.farm.location}</p>
+
+                      <div className="farm-profile-facts">
+                        {farmModal.farm.acres && <div><Trees size={18} /><span><small>Orchard</small><strong>{farmModal.farm.acres} acres</strong></span></div>}
+                        {farmModal.farm.since_year && <div><Calendar size={18} /><span><small>Since</small><strong>{farmModal.farm.since_year}</strong></span></div>}
+                        <div className="farm-profile-produce"><ImageIcon size={18} /><span><small>Produce</small><strong>{farmModal.farm.varieties}</strong></span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="farm-profile-story">
+                    <div><span>Our Grower Story</span><h3>About the Farm</h3></div>
+                    <p>{farmModal.farm.story}</p>
+                  </div>
+
+                  {farmModal.farm.farm_update && (
+                    <section className="farm-profile-update">
+                      <div className="farm-profile-update-icon"><Megaphone size={21} /></div>
+                      <div>
+                        <span>Updates from Farm</span>
+                        <h3>Latest from {farmModal.farm.farm_name}</h3>
+                        <p>{farmModal.farm.farm_update}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {(farmModal.farm.youtube_url || farmModal.farm.instagram_url) && (
+                    <section className="farm-profile-media">
+                      <div className="farm-profile-section-heading">
+                        <span>From the Farm</span>
+                        <h3>Videos and Social Updates</h3>
+                      </div>
+                      <div className="farm-profile-media-grid">
+                        {farmModal.farm.youtube_url && getYouTubeEmbedUrl(farmModal.farm.youtube_url) && (
+                          <div className="farm-profile-media-card">
+                            <div className="farm-profile-media-label"><Video size={18} /> YouTube</div>
+                            <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(farmModal.farm.youtube_url) || ''} title={`${farmModal.farm.farmer_name} YouTube video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+                          </div>
+                        )}
+                        {farmModal.farm.instagram_url && getInstagramPermalink(farmModal.farm.instagram_url) && (
+                          <div className="farm-profile-media-card">
+                            <div className="farm-profile-media-label instagram"><Images size={18} /> Instagram</div>
+                            <div className="farm-instagram-wrapper farm-instagram-inline">
+                              <blockquote
+                                className="instagram-media"
+                                data-instgrm-permalink={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url}
+                                data-instgrm-version="14"
+                              >
+                                <a href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
+                              </blockquote>
+                              <a className="btn btn-outline farm-instagram-fallback" href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  )}
+                </article>
+              )}
+              {farmModal.type === 'instagram' && farmModal.farm.instagram_url && (
+                <div className="farm-instagram-wrapper">
+                  <blockquote
+                    className="instagram-media"
+                    data-instgrm-permalink={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url}
+                    data-instgrm-version="14"
+                  >
+                    <a href={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
+                  </blockquote>
+                  <a className="btn btn-outline farm-instagram-fallback" href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
+                </div>
+              )}
+              {farmModal.type === 'youtube' && farmModal.farm.youtube_url && (
+                <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(farmModal.farm.youtube_url) || ''} title={`${farmModal.farm.farmer_name} YouTube video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Partnership application CTA */}
       <section className="farmer-join-cta">
-        <h2>Are you a mango farmer?</h2>
+        <h2>Are you a farmer or local producer?</h2>
         <p>
-          We are always looking to partner with sustainable growers in Chittoor district. Skip the wholesale markets and get fair, transparent prices for your hard work.
+          Join Chittoor Farms to reach customers directly and receive fair, transparent value for what you grow or produce.
         </p>
         <button className="btn btn-secondary" onClick={handleOpenForm}>
           Apply to join →
@@ -319,21 +595,38 @@ export const Farms: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="location">Farm Location (Village, Mandal, District) *</label>
-                <input
-                  type="text"
-                  id="location"
-                  className="form-control"
-                  placeholder="e.g. Puthalapattu mandal, Chittoor"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  required
-                />
+                <label htmlFor="applicationFarmType">Type of Farm *</label>
+                <select id="applicationFarmType" className="form-control" value={farmType} onChange={(e) => setFarmType(e.target.value)} required>
+                  <option value="">Select farm type</option>
+                  {farmTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="orchardSize">Orchard Size (acres)</label>
+                  <label htmlFor="district">District *</label>
+                  <input id="district" className="form-control" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="e.g. Chittoor" required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="mandal">Mandal *</label>
+                  <input id="mandal" className="form-control" value={mandal} onChange={(e) => setMandal(e.target.value)} placeholder="e.g. Puthalapattu" required />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="village">Village *</label>
+                  <input id="village" className="form-control" value={village} onChange={(e) => setVillage(e.target.value)} placeholder="Village name" required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="pincode">Pincode *</label>
+                  <input id="pincode" className="form-control" value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" placeholder="6-digit pincode" required />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="orchardSize">Farm Size (acres)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -359,12 +652,12 @@ export const Farms: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="varietiesGrown">Varieties Grown</label>
+                <label htmlFor="varietiesGrown">Produce, Breeds or Varieties</label>
                 <input
                   type="text"
                   id="varietiesGrown"
                   className="form-control"
-                  placeholder="e.g. Banganapalli, Totapuri, Alphonso"
+                  placeholder="e.g. Mangoes, Sona Masoori rice, dairy milk"
                   value={varietiesGrown}
                   onChange={(e) => setVarietiesGrown(e.target.value)}
                 />
@@ -375,7 +668,7 @@ export const Farms: React.FC = () => {
                 <textarea
                   id="story"
                   className="form-control"
-                  placeholder="Brief story about your orchard, farming techniques, organic methods..."
+                  placeholder="Brief story about your farm, methods, produce and values..."
                   value={story}
                   onChange={(e) => setStory(e.target.value)}
                   rows={4}

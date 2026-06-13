@@ -40,6 +40,14 @@ const escapeHtml = (value: string | number | null | undefined) => String(value ?
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
+const getLocalDateValue = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const Orders: React.FC = () => {
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -111,7 +119,7 @@ export const Orders: React.FC = () => {
       order.payment_reference,
       ...order.items.map((item) => item.name),
     ].filter(Boolean).join(' ').toLowerCase();
-    const orderDate = order.created_at.slice(0, 10);
+    const orderDate = getLocalDateValue(order.created_at);
     return (!normalizedSearch || searchable.includes(normalizedSearch))
       && (!dateFrom || orderDate >= dateFrom)
       && (!dateTo || orderDate <= dateTo);
@@ -328,26 +336,32 @@ export const Orders: React.FC = () => {
 
   return (
     <div>
-      {/* Lifecycle Navigation tabs */}
-      <div className="tabs-header">
-        <button
-          className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pending')}
-        >
-          Pending ({orders.filter((o) => o.status === 'pending').length})
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'fulfilled' ? 'active' : ''}`}
-          onClick={() => setActiveTab('fulfilled')}
-        >
-          Fulfilled ({orders.filter((o) => o.status === 'fulfilled').length})
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'failed' ? 'active' : ''}`}
-          onClick={() => setActiveTab('failed')}
-        >
-          Failed ({orders.filter((o) => o.status === 'failed').length})
-        </button>
+      <div className="orders-header-row">
+        {/* Lifecycle Navigation tabs */}
+        <div className="tabs-header">
+          <button
+            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pending ({orders.filter((o) => o.status === 'pending').length})
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'fulfilled' ? 'active' : ''}`}
+            onClick={() => setActiveTab('fulfilled')}
+          >
+            Fulfilled ({orders.filter((o) => o.status === 'fulfilled').length})
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'failed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('failed')}
+          >
+            Failed ({orders.filter((o) => o.status === 'failed').length})
+          </button>
+        </div>
+        <div className="orders-export-actions">
+          <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!filteredOrders.length}><FileText size={16} /> Export PDF</button>
+          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filteredOrders.length}><Download size={16} /> Export CSV</button>
+        </div>
       </div>
 
       <div className="orders-toolbar">
@@ -367,11 +381,14 @@ export const Orders: React.FC = () => {
           <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); }}>Clear</button>
         )}
         </div>
-        <div className="orders-export-actions">
-          <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!filteredOrders.length}><FileText size={16} /> Export PDF</button>
-          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filteredOrders.length}><Download size={16} /> Export CSV</button>
-        </div>
       </div>
+
+      {(dateFrom || dateTo) && (
+        <p className="orders-filter-summary">
+          Showing {filteredOrders.length} {activeTab} order{filteredOrders.length === 1 ? '' : 's'}
+          {dateFrom ? ` from ${dateFrom}` : ''}{dateTo ? ` through ${dateTo}` : ''}. PDF and CSV exports will contain only these records.
+        </p>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>

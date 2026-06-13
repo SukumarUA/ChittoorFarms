@@ -22,6 +22,8 @@ interface SiteSettings {
   wa_number: string;
   team: TeamMember[];
   categories: string[];
+  farm_types: string[];
+  shop_cta_text: string;
 }
 
 const emptySettings: SiteSettings = {
@@ -31,13 +33,15 @@ const emptySettings: SiteSettings = {
   wa_number: '',
   team: [],
   categories: [],
+  farm_types: [],
+  shop_cta_text: 'Shop Mangoes',
 };
 
 /** Parse the stored newline-separated string into individual notice items */
 function parseNotices(raw: string): NoticeItem[] {
   return raw
     .split('\n')
-    .map((line) => line.replace(/^[•*\-]\s*/, '').trim())
+    .map((line) => line.replace(/^[•*-]\s*/, '').trim())
     .filter(Boolean)
     .map((line) => {
       const colonIdx = line.indexOf(':');
@@ -62,6 +66,7 @@ export const CMS: React.FC = () => {
   const [settings, setSettings] = useState<SiteSettings>(emptySettings);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [newCategory, setNewCategory] = useState('');
+  const [newFarmType, setNewFarmType] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingTeamIndex, setUploadingTeamIndex] = useState<number | null>(null);
@@ -70,7 +75,7 @@ export const CMS: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board, team, categories')
+        .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board, team, categories, farm_types, shop_cta_text')
         .eq('id', 'main')
         .single();
 
@@ -82,6 +87,8 @@ export const CMS: React.FC = () => {
         wa_number: data.wa_number || '',
         team: Array.isArray(data.team) ? data.team : [],
         categories: Array.isArray(data.categories) ? data.categories : [],
+        farm_types: Array.isArray(data.farm_types) ? data.farm_types : [],
+        shop_cta_text: data.shop_cta_text || 'Shop Mangoes',
       });
       setNotices(parseNotices(data.notice_board || ''));
     } catch (error) {
@@ -110,6 +117,8 @@ export const CMS: React.FC = () => {
           notice_board: serializeNotices(notices),
           team: settings.team,
           categories: settings.categories,
+          farm_types: settings.farm_types,
+          shop_cta_text: settings.shop_cta_text.trim() || 'Shop Mangoes',
           updated_at: new Date().toISOString(),
         })
         .eq('id', 'main');
@@ -191,6 +200,17 @@ export const CMS: React.FC = () => {
     setNewCategory('');
   };
 
+  const addFarmType = () => {
+    const farmType = newFarmType.trim();
+    if (!farmType) return;
+    if (settings.farm_types.some((item) => item.toLowerCase() === farmType.toLowerCase())) {
+      showToast('Farm type already exists.', 'warning');
+      return;
+    }
+    setSettings({ ...settings, farm_types: [...settings.farm_types, farmType] });
+    setNewFarmType('');
+  };
+
   if (loading) return <div className="admin-empty-state">Loading CMS content...</div>;
 
   return (
@@ -207,6 +227,7 @@ export const CMS: React.FC = () => {
           <h2>Homepage</h2>
           <div className="form-group"><label htmlFor="cmsHeading">Hero Main Headline</label><input id="cmsHeading" className="form-control" value={settings.hero_heading} onChange={(e) => setSettings({ ...settings, hero_heading: e.target.value })} required /></div>
           <div className="form-group"><label htmlFor="cmsSubtext">Hero Subtitle</label><textarea id="cmsSubtext" className="form-control" value={settings.hero_subtext} onChange={(e) => setSettings({ ...settings, hero_subtext: e.target.value })} rows={4} required /></div>
+          <div className="form-group"><label htmlFor="cmsShopCta">Primary Shop Button Text</label><input id="cmsShopCta" className="form-control" placeholder="e.g. Shop Mangoes, Buy Fresh Rice" value={settings.shop_cta_text} onChange={(e) => setSettings({ ...settings, shop_cta_text: e.target.value })} maxLength={40} required /><small>Change this seasonally without editing code.</small></div>
           <div className="form-group"><label htmlFor="cmsBanner">Hero Background Image URL</label><input type="url" id="cmsBanner" className="form-control" value={settings.banner_img_url} onChange={(e) => setSettings({ ...settings, banner_img_url: e.target.value })} /></div>
           <div className="form-group"><label htmlFor="cmsWhatsapp">WhatsApp Operational Number</label><input id="cmsWhatsapp" className="form-control" placeholder="Digits only, e.g. 919876543210" value={settings.wa_number} onChange={(e) => setSettings({ ...settings, wa_number: e.target.value.replace(/\D/g, '') })} /><small>Leave blank to hide the WhatsApp calls to action.</small></div>
 
@@ -250,6 +271,23 @@ export const CMS: React.FC = () => {
               ))}
             </div>
             <small>Each notice rotates on the home page. The label appears as the heading.</small>
+          </div>
+        </section>
+
+        <section className="dashboard-panel cms-section">
+          <h2>Farm Types</h2>
+          <p className="cms-section-description">Manage the choices used for partner farms and farmer applications.</p>
+          <div className="cms-add-row">
+            <input className="form-control" placeholder="e.g. Vegetable Farm" value={newFarmType} onChange={(e) => setNewFarmType(e.target.value)} />
+            <button type="button" className="btn btn-secondary" onClick={addFarmType}><Plus size={16} /> Add</button>
+          </div>
+          <div className="cms-category-list">
+            {settings.farm_types.map((farmType) => (
+              <span key={farmType} className="cms-category-chip">
+                {farmType}
+                <button type="button" onClick={() => setSettings({ ...settings, farm_types: settings.farm_types.filter((item) => item !== farmType) })} aria-label={`Remove ${farmType}`}><X size={13} /></button>
+              </span>
+            ))}
           </div>
         </section>
 
