@@ -438,7 +438,6 @@ export const Farms: React.FC = () => {
           {filteredFarms.map((farm) => (
             <article key={farm.id} className="farm-card">
               <div className="farm-card-top">
-                {farm.farm_type && <div className="farm-card-type-ribbon">{farm.farm_type}</div>}
                 <div className="farm-img-wrapper">
                   <img
                     src={farm.photo_url || farmerImageFallback}
@@ -453,7 +452,10 @@ export const Farms: React.FC = () => {
               </div>
 
               <div className="farm-body">
-                <p className="farm-card-name">{farm.farm_name}</p>
+                <p className="farm-card-name">
+                  {farm.farm_name}
+                  {farm.farm_type && <span className="farm-card-type"> ({farm.farm_type})</span>}
+                </p>
                 <h2>{farm.farmer_name}</h2>
                 <p className="farm-card-location"><MapPin size={14} /> {farm.location}</p>
 

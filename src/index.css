@@ -1568,6 +1568,7 @@ main.main-content {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  border-left: 4px solid var(--secondary);
   padding: 1rem;
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -1588,7 +1589,6 @@ main.main-content {
   display: flex;
   justify-content: center;
   padding: 0.35rem 0 0.75rem;
-  overflow: hidden;
 }
 
 .farm-img-wrapper {
@@ -1641,22 +1641,12 @@ main.main-content {
   text-transform: uppercase;
 }
 
-.farm-card-type-ribbon {
-  position: absolute;
-  top: 18px;
-  right: -30px;
-  width: 120px;
-  background: var(--secondary);
-  color: #fff;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 4px 0;
-  transform: rotate(35deg);
-  z-index: 2;
-  pointer-events: none;
+.farm-card-type {
+  font-size: 0.6em;
+  font-weight: 600;
+  color: var(--secondary);
+  opacity: 0.8;
+  letter-spacing: 0.02em;
 }
 
 .farm-body h2 {
