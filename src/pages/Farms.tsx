@@ -438,6 +438,7 @@ export const Farms: React.FC = () => {
           {filteredFarms.map((farm) => (
             <article key={farm.id} className="farm-card">
               <div className="farm-card-top">
+                {farm.farm_type && <div className="farm-card-type-ribbon">{farm.farm_type}</div>}
                 <div className="farm-img-wrapper">
                   <img
                     src={farm.photo_url || farmerImageFallback}
@@ -453,7 +454,6 @@ export const Farms: React.FC = () => {
 
               <div className="farm-body">
                 <p className="farm-card-name">{farm.farm_name}</p>
-                {farm.farm_type && <span className="farm-card-type">{farm.farm_type}</span>}
                 <h2>{farm.farmer_name}</h2>
                 <p className="farm-card-location"><MapPin size={14} /> {farm.location}</p>
 
@@ -525,7 +525,7 @@ export const Farms: React.FC = () => {
                       <p className="farm-profile-location"><MapPin size={18} /> {farmModal.farm.location}</p>
 
                       <div className="farm-profile-facts">
-                        {farmModal.farm.acres && <div><Trees size={18} /><span><small>Orchard</small><strong>{farmModal.farm.acres} acres</strong></span></div>}
+                        {farmModal.farm.acres && <div><Trees size={18} /><span><small>Farm</small><strong>{farmModal.farm.acres} acres</strong></span></div>}
                         {farmModal.farm.since_year && <div><Calendar size={18} /><span><small>Since</small><strong>{farmModal.farm.since_year}</strong></span></div>}
                         <div className="farm-profile-produce"><ImageIcon size={18} /><span><small>Produce</small><strong>{farmModal.farm.varieties}</strong></span></div>
                       </div>
