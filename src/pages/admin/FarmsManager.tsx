@@ -61,7 +61,7 @@ export const FarmsManager: React.FC = () => {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [farmUpdate, setFarmUpdate] = useState('');
   const [featureUpdateOnNoticeBoard, setFeatureUpdateOnNoticeBoard] = useState(false);
-  const [sortOrder, setSortOrder] = useState('0');
+  const [sortOrder, setSortOrder] = useState('');
   const [active, setActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
@@ -75,7 +75,8 @@ export const FarmsManager: React.FC = () => {
       const { data, error } = await supabase
         .from('farms')
         .select('*')
-        .order('sort_order', { ascending: true });
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       setFarms(data || []);
@@ -108,7 +109,7 @@ export const FarmsManager: React.FC = () => {
     setYoutubeUrl('');
     setFarmUpdate('');
     setFeatureUpdateOnNoticeBoard(false);
-    setSortOrder('0');
+    setSortOrder('');
     setActive(true);
     setImageFile(null);
     setImagePreviewUrl('');
@@ -129,7 +130,7 @@ export const FarmsManager: React.FC = () => {
     setYoutubeUrl(farm.youtube_url || '');
     setFarmUpdate(farm.farm_update || '');
     setFeatureUpdateOnNoticeBoard(farm.feature_update_on_notice_board);
-    setSortOrder(farm.sort_order.toString());
+    setSortOrder(farm.sort_order != null ? farm.sort_order.toString() : '');
     setActive(farm.active);
     setImageFile(null);
     setImagePreviewUrl(farm.photo_url || '');
@@ -240,7 +241,7 @@ export const FarmsManager: React.FC = () => {
         acres: acres ? parseFloat(acres) : null,
         since_year: sinceYear ? parseInt(sinceYear) : null,
         story: story.trim(),
-        sort_order: parseInt(sortOrder) || 0,
+        sort_order: sortOrder.trim() !== '' ? parseInt(sortOrder) : null,
         active,
         photo_url: finalImageUrl || null,
         instagram_url: instagramUrl.trim() || null,

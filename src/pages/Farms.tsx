@@ -206,7 +206,7 @@ export const Farms: React.FC = () => {
     const fetchFarms = async () => {
       try {
         const [{ data, error }, { data: settings }] = await Promise.all([
-          supabase.from('farms').select('*').eq('active', true).order('sort_order', { ascending: true }),
+          supabase.from('farms').select('*').eq('active', true).order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true }),
           supabase.from('settings').select('farm_types').eq('id', 'main').single(),
         ]);
 
