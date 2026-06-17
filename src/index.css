@@ -1564,6 +1564,8 @@ main.main-content {
 
 .farms-result-count {
   flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 700;
@@ -1883,7 +1885,6 @@ main.main-content {
   .farms-directory-toolbar { align-items: stretch; flex-direction: column; padding: 0.65rem; }
   .farms-search-row { width: 100%; }
   .farms-advanced-filters { grid-template-columns: 1fr; margin-top: -0.55rem; }
-  .farms-result-count { padding: 0 0.2rem; }
   .farms-join-button { width: 100%; justify-content: center; }
   .farm-card-grid { grid-template-columns: 1fr; gap: 0.8rem; }
   .farm-card { padding: 0.9rem; }

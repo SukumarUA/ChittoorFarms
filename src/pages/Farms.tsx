@@ -405,12 +405,12 @@ export const Farms: React.FC = () => {
             />
             {farmSearch && <button type="button" onClick={() => setFarmSearch('')} aria-label="Clear farm search"><X size={16} /></button>}
           </div>
+          <span className="farms-result-count">{filteredFarms.length} farm{filteredFarms.length === 1 ? '' : 's'}</span>
           <button type="button" className={`farms-filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters} aria-label="Filter partner farms">
             <SlidersHorizontal size={19} />
             {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
         </div>
-        <span className="farms-result-count">{filteredFarms.length} farm{filteredFarms.length === 1 ? '' : 's'}</span>
         <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join Chittoor Farms</button>
       </div>
 
