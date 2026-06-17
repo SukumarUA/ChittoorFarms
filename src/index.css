@@ -2083,7 +2083,8 @@ main.main-content {
 }
 
 .team-section {
-  margin-bottom: 5rem;
+  padding-top: clamp(2.5rem, 6vw, 5rem);
+  padding-bottom: clamp(2.5rem, 6vw, 5rem);
 }
 
 .team-section h2 {
@@ -4285,11 +4286,27 @@ input:checked + .toggle-slider:before {
 }
 
 /* ==========================================================================
+   ABOUT PAGE — LAYOUT WRAPPERS
+   ========================================================================== */
+.about-page {
+  width: 100%;
+}
+
+.about-intro-section {
+  padding: clamp(2.5rem, 6vw, 5rem) 0;
+}
+
+.visit-booking-banner-section {
+  padding: clamp(2rem, 5vw, 4rem) 0;
+}
+
+/* ==========================================================================
    ABOUT PAGE — HERITAGE SECTION
    ========================================================================== */
 .heritage-section {
-  margin-top: clamp(2.5rem, 6vw, 5rem);
-  margin-bottom: clamp(2.5rem, 6vw, 5rem);
+  padding-top: clamp(2.5rem, 6vw, 5rem);
+  padding-bottom: clamp(2.5rem, 6vw, 5rem);
+  background: rgba(30, 94, 58, 0.03);
 }
 
 .heritage-intro {

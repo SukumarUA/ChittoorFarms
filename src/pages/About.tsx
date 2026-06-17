@@ -109,130 +109,121 @@ export const About: React.FC = () => {
   };
 
   return (
-    <div className="container">
-      {/* About Section */}
-      <section className="about-grid">
-        <div className="about-story">
-          <h1>Connecting You to the Soil</h1>
-          <p>
-            Chittoor district in Andhra Pradesh is renowned for producing some of India's finest mango varieties, yet traditional supply chains keep growers impoverished and customers eating chemically-ripened, stale fruit.
-          </p>
-          <p>
-            <strong>Chittoor Farms</strong> was founded with a singular purpose: cut out cold houses, middle agents, and chemical sorting. We source directly from orchards, ripen mangoes naturally in traditional hay grass, and deliver them straight to city thresholds within hours of harvesting.
-          </p>
-          <p>
-            This ensures you get mangoes with their rich, original sugars intact, while farmers earn a premium, fair wage directly.
-          </p>
-        </div>
+    <div className="about-page">
 
-        <div className="about-logo-wrapper">
-          <div className="about-logo-circle">
-            <img
-              src="/CTRFLOGO.jpeg"
-              alt="Chittoor Farms Logo"
-              className="about-logo-img"
-            />
+      {/* ── Intro: Story + Logo ───────────────────────────────────────── */}
+      <section className="about-intro-section">
+        <div className="container">
+          <div className="about-grid">
+            <div className="about-story">
+              <h1>Connecting You to the Soil</h1>
+              <p>
+                Chittoor district in Andhra Pradesh is renowned for producing some of India's finest mango varieties, yet traditional supply chains keep growers impoverished and customers eating chemically-ripened, stale fruit.
+              </p>
+              <p>
+                <strong>Chittoor Farms</strong> was founded with a singular purpose: cut out cold houses, middle agents, and chemical sorting. We source directly from orchards, ripen mangoes naturally in traditional hay grass, and deliver them straight to city thresholds within hours of harvesting.
+              </p>
+              <p>
+                This ensures you get mangoes with their rich, original sugars intact, while farmers earn a premium, fair wage directly.
+              </p>
+            </div>
+
+            <div className="about-logo-wrapper">
+              <div className="about-logo-circle">
+                <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms Logo" className="about-logo-img" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Heritage Section */}
+      {/* ── Heritage Section (full-bleed background) ─────────────────── */}
       <section className="heritage-section">
-        <div className="heritage-intro">
-          <span className="heritage-badge">
-            • CHITTOOR, INDIA'S MANGO PARADISE •
-          </span>
-          <h2 className="heritage-title">
-            Discover Chittoor's Mango Cultivation Heritage
-          </h2>
-        </div>
+        <div className="container">
+          <div className="heritage-intro">
+            <span className="heritage-badge">• CHITTOOR, INDIA'S MANGO PARADISE •</span>
+            <h2 className="heritage-title">Discover Chittoor's Mango Cultivation Heritage</h2>
+          </div>
 
-        <div className="heritage-grid">
-          <div className="heritage-col">
-            <p>
-              Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.
-            </p>
-            <p>
-              Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.
-            </p>
-            <p>
-              While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.
-            </p>
+          <div className="heritage-grid">
+            <div className="heritage-col">
+              <p>Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.</p>
+              <p>Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.</p>
+              <p>While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.</p>
+            </div>
+            <div className="heritage-col">
+              <p>What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.</p>
+              <p>To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.</p>
+              <p>However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly—ensuring fair profits reach the growers while enjoying premium, naturally ripened fruit delivered straight to your home.</p>
+            </div>
           </div>
-          <div className="heritage-col">
-            <p>
-              What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.
-            </p>
-            <p>
-              To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.
-            </p>
-            <p>
-              However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly—ensuring fair profits reach the growers while enjoying premium, naturally ripened fruit delivered straight to your home.
-            </p>
-          </div>
-        </div>
 
-        {/* Heritage Stat Cards */}
-        <div className="heritage-stats-grid">
-          <div className="heritage-stat-card">
-            <div className="stat-num">100,000+</div>
-            <div className="stat-sub">Acres Cultivated</div>
-            <p className="stat-desc">Mango orchards across Chittoor district — the largest in AP</p>
-          </div>
-          <div className="heritage-stat-card">
-            <div className="stat-num">500,000+</div>
-            <div className="stat-sub">Metric Tonnes / Year</div>
-            <p className="stat-desc">Annual harvest in a good season — one of India's largest</p>
-          </div>
-          <div className="heritage-stat-card">
-            <div className="stat-num">4+</div>
-            <div className="stat-sub">Varieties Per Farm</div>
-            <p className="stat-desc">Average number of mango types grown on a single Chittoor orchard</p>
-          </div>
-          <div className="heritage-stat-card">
-            <div className="stat-num">50+</div>
-            <div className="stat-sub">Pulp Industries</div>
-            <p className="stat-desc">Processing units powered by Chittoor's Totapuri surplus</p>
+          <div className="heritage-stats-grid">
+            <div className="heritage-stat-card">
+              <div className="stat-num">100,000+</div>
+              <div className="stat-sub">Acres Cultivated</div>
+              <p className="stat-desc">Mango orchards across Chittoor district — the largest in AP</p>
+            </div>
+            <div className="heritage-stat-card">
+              <div className="stat-num">500,000+</div>
+              <div className="stat-sub">Metric Tonnes / Year</div>
+              <p className="stat-desc">Annual harvest in a good season — one of India's largest</p>
+            </div>
+            <div className="heritage-stat-card">
+              <div className="stat-num">4+</div>
+              <div className="stat-sub">Varieties Per Farm</div>
+              <p className="stat-desc">Average number of mango types grown on a single Chittoor orchard</p>
+            </div>
+            <div className="heritage-stat-card">
+              <div className="stat-num">50+</div>
+              <div className="stat-sub">Pulp Industries</div>
+              <p className="stat-desc">Processing units powered by Chittoor's Totapuri surplus</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Team Section */}
+      {/* ── Team Section ─────────────────────────────────────────────── */}
       {team.length > 0 && (
         <section className="team-section">
-          <h2 style={{ textAlign: 'center' }}>Meet the Team</h2>
-          <p style={{ textAlign: 'center', maxWidth: '600px', margin: '0.25rem auto 1.5rem auto' }}>
-            The people working behind the scenes to streamline harvesting, packaging, and direct distribution.
-          </p>
-
-          <div className="team-grid">
-            {team.map((member, idx) => (
-              <div key={idx} className="team-card">
-                <div className="team-avatar-placeholder">
-                  {member.image_url ? (
-                    <img className="team-avatar-image" src={member.image_url} alt={member.name} />
-                  ) : (
-                    <Users size={32} />
-                  )}
+          <div className="container">
+            <h2 style={{ textAlign: 'center' }}>Meet the Team</h2>
+            <p style={{ textAlign: 'center', maxWidth: '600px', margin: '0.25rem auto 1.5rem auto' }}>
+              The people working behind the scenes to streamline harvesting, packaging, and direct distribution.
+            </p>
+            <div className="team-grid">
+              {team.map((member, idx) => (
+                <div key={idx} className="team-card">
+                  <div className="team-avatar-placeholder">
+                    {member.image_url ? (
+                      <img className="team-avatar-image" src={member.image_url} alt={member.name} />
+                    ) : (
+                      <Users size={32} />
+                    )}
+                  </div>
+                  <h3>{member.name}</h3>
+                  <div className="team-role">{member.role}</div>
+                  <p className="team-bio">{member.bio}</p>
                 </div>
-                <h3>{member.name}</h3>
-                <div className="team-role">{member.role}</div>
-                <p className="team-bio">{member.bio}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* Book Farm Visit CTA Banner */}
-      <section className="visit-booking-banner">
-        <h2>Experience the Farm Life</h2>
-        <p>
-          Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.
-        </p>
-        <button className="btn btn-secondary" onClick={handleOpenBooking}>
-          Book a farm visit
-        </button>
+      {/* ── Visit CTA Banner (full-bleed) ────────────────────────────── */}
+      <section className="visit-booking-banner-section">
+        <div className="container">
+          <div className="visit-booking-banner">
+            <h2>Experience the Farm Life</h2>
+            <p>
+              Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.
+            </p>
+            <button className="btn btn-secondary" onClick={handleOpenBooking}>
+              Book a farm visit
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* Booking Form Modal */}
