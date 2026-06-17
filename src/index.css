@@ -266,6 +266,36 @@ a:hover {
   gap: 0.5rem;
 }
 
+.referral-code-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 0.75rem;
+  color: var(--secondary);
+  cursor: default;
+  border-radius: 50%;
+  position: relative;
+}
+.referral-code-info[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 220px;
+  background: var(--secondary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  z-index: 50;
+  pointer-events: none;
+  white-space: normal;
+}
+
 .form-group label {
   font-family: 'Outfit', sans-serif;
   font-size: 0.88rem;

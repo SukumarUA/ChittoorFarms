@@ -31,6 +31,14 @@ export const CartDrawer: React.FC = () => {
   const [pinCode, setPinCode] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [discountInfo, setDiscountInfo] = useState<{
+    referral_valid: boolean; referral_pct: number; referral_msg: string;
+    promo_valid: boolean; promo_pct: number; promo_msg: string;
+    total_discount_pct: number;
+  } | null>(null);
+  const [isValidatingCodes, setIsValidatingCodes] = useState(false);
 
   // Date limit: today or later
   const todayStr = new Date().toISOString().split('T')[0];
@@ -64,6 +72,22 @@ export const CartDrawer: React.FC = () => {
 
   const handleCloseCheckout = () => {
     setIsCheckoutOpen(false);
+  };
+
+  const validateCodes = async (refCode: string, pCode: string, phoneVal: string) => {
+    if (!refCode && !pCode) { setDiscountInfo(null); return; }
+    const phoneDigits = phoneVal.replace(/\D/g, '');
+    setIsValidatingCodes(true);
+    try {
+      const { data, error } = await supabase.rpc('validate_discount_codes', {
+        p_referral_code: refCode || null,
+        p_promo_code: pCode || null,
+        p_phone: phoneDigits || null,
+      });
+      if (!error && data) setDiscountInfo(data as typeof discountInfo);
+    } catch { /* silent */ } finally {
+      setIsValidatingCodes(false);
+    }
   };
 
   const formatOrderUnit = (unit: string) => unit.trim().replace(/^1(?=\s*[a-zA-Z])\s*/, '');
@@ -111,6 +135,10 @@ export const CartDrawer: React.FC = () => {
       }));
 
       // Supabase atomically assigns the daily YYYYMMDDCF00001 order number.
+      const discountPct = discountInfo?.total_discount_pct ?? 0;
+      const discountAmount = Math.round(cartTotal * discountPct) / 100;
+      const finalTotal = cartTotal - discountAmount;
+
       const { data: orderReference, error } = await supabase.rpc('create_order', {
         p_customer_name: fullName.trim(),
         p_phone: phoneDigits,
@@ -119,7 +147,9 @@ export const CartDrawer: React.FC = () => {
         p_preferred_delivery_date: preferredDate || null,
         p_special_instructions: instructions.trim(),
         p_items: orderItems,
-        p_total: cartTotal,
+        p_total: finalTotal,
+        p_referral_code: referralCode.trim() || null,
+        p_promo_code: promoCode.trim() || null,
       });
 
       if (error) throw error;
@@ -138,6 +168,10 @@ export const CartDrawer: React.FC = () => {
             `  Amount: ₹${item.quantity * item.price}`,
           ];
         });
+        const discountPct2 = discountInfo?.total_discount_pct ?? 0;
+        const discountAmt2 = Math.round(cartTotal * discountPct2) / 100;
+        const finalTotal2 = cartTotal - discountAmt2;
+        const discountLine = discountPct2 > 0 ? [`Discount: ${discountPct2}% (-₹${discountAmt2})`, `*Total: ₹${finalTotal2}*`] : [`*Total: ₹${cartTotal}*`];
         const whatsappMessage = [
           '*New Chittoor Farms Order*',
           `Order Ref: ${orderReference}`,
@@ -150,7 +184,7 @@ export const CartDrawer: React.FC = () => {
           '*Items*',
           ...itemLines,
           '',
-          `*Total: ₹${cartTotal}*`,
+          ...discountLine,
           `Payment: COD / UPI`,
           `Instructions: ${instructions.trim() || 'None'}`,
         ].join('\n');
@@ -171,6 +205,9 @@ export const CartDrawer: React.FC = () => {
       setPinCode('');
       setPreferredDate('');
       setInstructions('');
+      setReferralCode('');
+      setPromoCode('');
+      setDiscountInfo(null);
     } catch (err: unknown) {
       console.error('Checkout error:', err);
       showToast('Failed to place order. Please try again.', 'error');
@@ -364,6 +401,59 @@ export const CartDrawer: React.FC = () => {
                   onChange={(e) => setInstructions(e.target.value)}
                 />
               </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="referralCode" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    Referral Code
+                    <span className="referral-code-info" title="Have a referral code from a friend? Enter it here to get 10% off your order.">ⓘ</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="referralCode"
+                    className="form-control"
+                    placeholder="e.g. FRIEND10"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    onBlur={() => validateCodes(referralCode, promoCode, phone)}
+                  />
+                  {referralCode && discountInfo && (
+                    <small style={{ color: discountInfo.referral_valid ? 'var(--primary)' : '#c0392b', marginTop: '0.25rem', display: 'block' }}>
+                      {discountInfo.referral_msg}
+                    </small>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="promoCode" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    Promo Code
+                    <span className="referral-code-info" title="Reordering with the same phone number? Enter REORDER for an extra 5% off!">ⓘ</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="promoCode"
+                    className="form-control"
+                    placeholder="e.g. REORDER"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    onBlur={() => validateCodes(referralCode, promoCode, phone)}
+                  />
+                  {promoCode && discountInfo && (
+                    <small style={{ color: discountInfo.promo_valid ? 'var(--primary)' : '#c0392b', marginTop: '0.25rem', display: 'block' }}>
+                      {discountInfo.promo_msg}
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              {discountInfo && discountInfo.total_discount_pct > 0 && (
+                <div style={{ marginTop: '0.5rem', padding: '0.65rem 0.85rem', background: 'rgba(var(--primary-rgb, 34,139,34), 0.08)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-sm)', fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                  🎉 <strong>{discountInfo.total_discount_pct}% discount applied!</strong>
+                  {' '}You save ₹{Math.round(cartTotal * discountInfo.total_discount_pct) / 100} — final total{' '}
+                  <strong>₹{cartTotal - Math.round(cartTotal * discountInfo.total_discount_pct) / 100}</strong>
+                  {isValidatingCodes && <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>checking…</span>}
+                </div>
+              )}
 
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-muted)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 ℹ️ <strong>Payment Notice:</strong> No upfront payment is required. Payment is collected via UPI or Cash on delivery.
