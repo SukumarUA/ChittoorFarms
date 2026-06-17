@@ -97,11 +97,20 @@ interface Farm {
   photo_url: string;
   instagram_url: string | null;
   youtube_url: string | null;
+  instagram_urls: string[];
+  youtube_urls: string[];
   farm_update: string | null;
   feature_update_on_notice_board: boolean;
   sort_order: number;
   active: boolean;
 }
+
+// Helpers to get the effective arrays (fall back to legacy single columns)
+const getInstagramUrls = (farm: Farm): string[] =>
+  farm.instagram_urls?.length ? farm.instagram_urls : (farm.instagram_url ? [farm.instagram_url] : []);
+
+const getYoutubeUrls = (farm: Farm): string[] =>
+  farm.youtube_urls?.length ? farm.youtube_urls : (farm.youtube_url ? [farm.youtube_url] : []);
 
 type FarmModal = { type: 'details' | 'instagram' | 'youtube'; farm: Farm } | null;
 
@@ -153,7 +162,7 @@ export const Farms: React.FC = () => {
 
   useEffect(() => {
     const shouldLoadInstagram = farmModal?.type === 'instagram'
-      || (farmModal?.type === 'details' && Boolean(farmModal.farm.instagram_url));
+      || (farmModal?.type === 'details' && getInstagramUrls(farmModal.farm).length > 0);
     if (!shouldLoadInstagram) return;
 
     const processEmbed = () => window.instgrm?.Embeds.process();
@@ -485,12 +494,26 @@ export const Farms: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    {farm.instagram_url && getInstagramPermalink(farm.instagram_url) && (
-                      <button type="button" className="farm-card-icon-button instagram" onClick={() => setFarmModal({ type: 'instagram', farm })} aria-label={`View ${farm.farmer_name} on Instagram`} title="Instagram"><Images size={17} /></button>
-                    )}
-                    {farm.youtube_url && getYouTubeEmbedUrl(farm.youtube_url) && (
-                      <button type="button" className="farm-card-icon-button youtube" onClick={() => setFarmModal({ type: 'youtube', farm })} aria-label={`Watch ${farm.farmer_name} on YouTube`} title="YouTube"><Video size={18} /></button>
-                    )}
+                    {(() => {
+                      const igUrls = getInstagramUrls(farm).filter((u) => getInstagramPermalink(u));
+                      if (!igUrls.length) return null;
+                      return (
+                        <button type="button" className="farm-card-icon-button instagram" onClick={() => setFarmModal({ type: 'instagram', farm })} aria-label={`View ${farm.farmer_name} on Instagram`} title="Instagram">
+                          <Images size={17} />
+                          {igUrls.length > 1 && <span className="media-count-badge">{igUrls.length}</span>}
+                        </button>
+                      );
+                    })()}
+                    {(() => {
+                      const ytUrls = getYoutubeUrls(farm).filter((u) => getYouTubeEmbedUrl(u));
+                      if (!ytUrls.length) return null;
+                      return (
+                        <button type="button" className="farm-card-icon-button youtube" onClick={() => setFarmModal({ type: 'youtube', farm })} aria-label={`Watch ${farm.farmer_name} on YouTube`} title="YouTube">
+                          <Video size={18} />
+                          {ytUrls.length > 1 && <span className="media-count-badge">{ytUrls.length}</span>}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -506,7 +529,10 @@ export const Farms: React.FC = () => {
               <button type="button" className="farm-profile-close" onClick={() => setFarmModal(null)} aria-label="Close farm profile"><X size={20} /></button>
             ) : (
               <div className="modal-header">
-                <h3>{farmModal.type === 'instagram' ? `${farmModal.farm.farmer_name} on Instagram` : `${farmModal.farm.farmer_name} on YouTube`}</h3>
+                <h3>{farmModal.type === 'instagram'
+                  ? `${farmModal.farm.farmer_name} on Instagram${getInstagramUrls(farmModal.farm).length > 1 ? ` (${getInstagramUrls(farmModal.farm).length} posts)` : ''}`
+                  : `${farmModal.farm.farmer_name} on YouTube${getYoutubeUrls(farmModal.farm).length > 1 ? ` (${getYoutubeUrls(farmModal.farm).length} videos)` : ''}`
+                }</h3>
                 <button type="button" className="btn-icon" onClick={() => setFarmModal(null)} aria-label="Close farm popup"><X size={20} /></button>
               </div>
             )}
@@ -552,54 +578,61 @@ export const Farms: React.FC = () => {
                     </section>
                   )}
 
-                  {(farmModal.farm.youtube_url || farmModal.farm.instagram_url) && (
-                    <section className="farm-profile-media">
-                      <div className="farm-profile-section-heading">
-                        <span>From the Farm</span>
-                        <h3>Videos and Social Updates</h3>
-                      </div>
-                      <div className="farm-profile-media-grid">
-                        {farmModal.farm.youtube_url && getYouTubeEmbedUrl(farmModal.farm.youtube_url) && (
-                          <div className="farm-profile-media-card">
-                            <div className="farm-profile-media-label"><Video size={18} /> YouTube</div>
-                            <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(farmModal.farm.youtube_url) || ''} title={`${farmModal.farm.farmer_name} YouTube video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
-                          </div>
-                        )}
-                        {farmModal.farm.instagram_url && getInstagramPermalink(farmModal.farm.instagram_url) && (
-                          <div className="farm-profile-media-card">
-                            <div className="farm-profile-media-label instagram"><Images size={18} /> Instagram</div>
-                            <div className="farm-instagram-wrapper farm-instagram-inline">
-                              <blockquote
-                                className="instagram-media"
-                                data-instgrm-permalink={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url}
-                                data-instgrm-version="14"
-                              >
-                                <a href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
-                              </blockquote>
-                              <a className="btn btn-outline farm-instagram-fallback" href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
+                  {(() => {
+                    const ytUrls = getYoutubeUrls(farmModal.farm).filter((u) => getYouTubeEmbedUrl(u));
+                    const igUrls = getInstagramUrls(farmModal.farm).filter((u) => getInstagramPermalink(u));
+                    if (!ytUrls.length && !igUrls.length) return null;
+                    return (
+                      <section className="farm-profile-media">
+                        <div className="farm-profile-section-heading">
+                          <span>From the Farm</span>
+                          <h3>Videos and Social Updates</h3>
+                        </div>
+                        <div className="farm-profile-media-grid">
+                          {ytUrls.map((url, idx) => (
+                            <div key={`yt-${idx}`} className="farm-profile-media-card">
+                              <div className="farm-profile-media-label"><Video size={18} /> YouTube{ytUrls.length > 1 ? ` (${idx + 1})` : ''}</div>
+                              <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(url) || ''} title={`${farmModal.farm.farmer_name} YouTube video ${idx + 1}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </section>
-                  )}
+                          ))}
+                          {igUrls.map((url, idx) => (
+                            <div key={`ig-${idx}`} className="farm-profile-media-card">
+                              <div className="farm-profile-media-label instagram"><Images size={18} /> Instagram{igUrls.length > 1 ? ` (${idx + 1})` : ''}</div>
+                              <div className="farm-instagram-wrapper farm-instagram-inline">
+                                <blockquote className="instagram-media" data-instgrm-permalink={getInstagramPermalink(url) || url} data-instgrm-version="14">
+                                  <a href={url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
+                                </blockquote>
+                                <a className="btn btn-outline farm-instagram-fallback" href={url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })()}
                 </article>
               )}
-              {farmModal.type === 'instagram' && farmModal.farm.instagram_url && (
-                <div className="farm-instagram-wrapper">
-                  <blockquote
-                    className="instagram-media"
-                    data-instgrm-permalink={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url}
-                    data-instgrm-version="14"
-                  >
-                    <a href={getInstagramPermalink(farmModal.farm.instagram_url) || farmModal.farm.instagram_url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
-                  </blockquote>
-                  <a className="btn btn-outline farm-instagram-fallback" href={farmModal.farm.instagram_url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
-                </div>
-              )}
-              {farmModal.type === 'youtube' && farmModal.farm.youtube_url && (
-                <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(farmModal.farm.youtube_url) || ''} title={`${farmModal.farm.farmer_name} YouTube video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
-              )}
+              {farmModal.type === 'instagram' && (() => {
+                const igUrls = getInstagramUrls(farmModal.farm).filter((u) => getInstagramPermalink(u));
+                return igUrls.map((url, idx) => (
+                  <div key={idx} className="farm-instagram-wrapper" style={idx > 0 ? { marginTop: '1.5rem' } : undefined}>
+                    {igUrls.length > 1 && <div className="farm-profile-media-label instagram" style={{ marginBottom: '0.5rem' }}><Images size={16} /> Post {idx + 1}</div>}
+                    <blockquote className="instagram-media" data-instgrm-permalink={getInstagramPermalink(url) || url} data-instgrm-version="14">
+                      <a href={url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
+                    </blockquote>
+                    <a className="btn btn-outline farm-instagram-fallback" href={url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> View on Instagram</a>
+                  </div>
+                ));
+              })()}
+              {farmModal.type === 'youtube' && (() => {
+                const ytUrls = getYoutubeUrls(farmModal.farm).filter((u) => getYouTubeEmbedUrl(u));
+                return ytUrls.map((url, idx) => (
+                  <div key={idx} style={idx > 0 ? { marginTop: '1.5rem' } : undefined}>
+                    {ytUrls.length > 1 && <div className="farm-profile-media-label" style={{ marginBottom: '0.5rem' }}><Video size={16} /> Video {idx + 1}</div>}
+                    <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(url) || ''} title={`${farmModal.farm.farmer_name} YouTube video ${idx + 1}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>

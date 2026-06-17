@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Megaphone } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Megaphone, PlusCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 
@@ -22,6 +22,8 @@ interface Farm {
   photo_url: string;
   instagram_url: string | null;
   youtube_url: string | null;
+  instagram_urls: string[];
+  youtube_urls: string[];
   farm_update: string | null;
   feature_update_on_notice_board: boolean;
   farm_type: string | null;
@@ -57,8 +59,8 @@ export const FarmsManager: React.FC = () => {
   const [acres, setAcres] = useState('');
   const [sinceYear, setSinceYear] = useState('');
   const [story, setStory] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [instagramUrls, setInstagramUrls] = useState<string[]>(['']);
+  const [youtubeUrls, setYoutubeUrls] = useState<string[]>(['']);
   const [farmUpdate, setFarmUpdate] = useState('');
   const [featureUpdateOnNoticeBoard, setFeatureUpdateOnNoticeBoard] = useState(false);
   const [sortOrder, setSortOrder] = useState('');
@@ -105,8 +107,8 @@ export const FarmsManager: React.FC = () => {
     setAcres('');
     setSinceYear('');
     setStory('');
-    setInstagramUrl('');
-    setYoutubeUrl('');
+    setInstagramUrls(['']);
+    setYoutubeUrls(['']);
     setFarmUpdate('');
     setFeatureUpdateOnNoticeBoard(false);
     setSortOrder('');
@@ -126,8 +128,8 @@ export const FarmsManager: React.FC = () => {
     setAcres(farm.acres?.toString() || '');
     setSinceYear(farm.since_year?.toString() || '');
     setStory(farm.story);
-    setInstagramUrl(farm.instagram_url || '');
-    setYoutubeUrl(farm.youtube_url || '');
+    setInstagramUrls(farm.instagram_urls?.length ? farm.instagram_urls : (farm.instagram_url ? [farm.instagram_url] : ['']));
+    setYoutubeUrls(farm.youtube_urls?.length ? farm.youtube_urls : (farm.youtube_url ? [farm.youtube_url] : ['']));
     setFarmUpdate(farm.farm_update || '');
     setFeatureUpdateOnNoticeBoard(farm.feature_update_on_notice_board);
     setSortOrder(farm.sort_order != null ? farm.sort_order.toString() : '');
@@ -244,8 +246,11 @@ export const FarmsManager: React.FC = () => {
         sort_order: sortOrder.trim() !== '' ? parseInt(sortOrder) : null,
         active,
         photo_url: finalImageUrl || null,
-        instagram_url: instagramUrl.trim() || null,
-        youtube_url: youtubeUrl.trim() || null,
+        instagram_urls: instagramUrls.map((u) => u.trim()).filter(Boolean),
+        youtube_urls: youtubeUrls.map((u) => u.trim()).filter(Boolean),
+        // Keep legacy single columns in sync (first URL or null)
+        instagram_url: instagramUrls.find((u) => u.trim()) || null,
+        youtube_url: youtubeUrls.find((u) => u.trim()) || null,
         farm_update: farmUpdate.trim() || null,
         feature_update_on_notice_board: Boolean(farmUpdate.trim()) && featureUpdateOnNoticeBoard,
       };
@@ -613,29 +618,78 @@ export const FarmsManager: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="fmInstagram">Instagram Post or Reel URL</label>
-                    <input
-                      type="url"
-                      id="fmInstagram"
-                      className="form-control"
-                      placeholder="https://www.instagram.com/p/..."
-                      value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="fmYouTube">YouTube Video URL</label>
-                    <input
-                      type="url"
-                      id="fmYouTube"
-                      className="form-control"
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                    />
-                  </div>
+                {/* Instagram URLs — multiple */}
+                <div className="form-group">
+                  <label>Instagram Post / Reel URLs</label>
+                  {instagramUrls.map((url, idx) => (
+                    <div key={idx} className="media-url-row">
+                      <input
+                        type="url"
+                        className="form-control"
+                        placeholder="https://www.instagram.com/p/..."
+                        value={url}
+                        onChange={(e) => {
+                          const next = [...instagramUrls];
+                          next[idx] = e.target.value;
+                          setInstagramUrls(next);
+                        }}
+                      />
+                      {instagramUrls.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn-icon media-url-remove"
+                          onClick={() => setInstagramUrls(instagramUrls.filter((_, i) => i !== idx))}
+                          title="Remove"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-outline media-url-add"
+                    onClick={() => setInstagramUrls([...instagramUrls, ''])}
+                  >
+                    <PlusCircle size={15} /> Add Instagram URL
+                  </button>
+                </div>
+
+                {/* YouTube URLs — multiple */}
+                <div className="form-group">
+                  <label>YouTube Video URLs</label>
+                  {youtubeUrls.map((url, idx) => (
+                    <div key={idx} className="media-url-row">
+                      <input
+                        type="url"
+                        className="form-control"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={url}
+                        onChange={(e) => {
+                          const next = [...youtubeUrls];
+                          next[idx] = e.target.value;
+                          setYoutubeUrls(next);
+                        }}
+                      />
+                      {youtubeUrls.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn-icon media-url-remove"
+                          onClick={() => setYoutubeUrls(youtubeUrls.filter((_, i) => i !== idx))}
+                          title="Remove"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-outline media-url-add"
+                    onClick={() => setYoutubeUrls([...youtubeUrls, ''])}
+                  >
+                    <PlusCircle size={15} /> Add YouTube URL
+                  </button>
                 </div>
 
                 <div className="form-row">

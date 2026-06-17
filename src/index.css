@@ -1822,6 +1822,55 @@ main.main-content {
 .farm-card-icon-button.instagram { color: #a3298f; }
 .farm-card-icon-button.youtube { color: #d32626; }
 
+/* Count badge on media icon buttons */
+.farm-card-icon-button { position: relative; }
+.media-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Admin form — multi-URL input rows */
+.media-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.media-url-row .form-control { flex: 1; margin-bottom: 0; }
+.media-url-remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  color: var(--danger);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  background: var(--bg-card);
+  cursor: pointer;
+}
+.media-url-remove:hover { background: var(--bg-muted); }
+.media-url-add {
+  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+}
+
 @media (max-width: 1050px) {
   .farm-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .farms-advanced-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
