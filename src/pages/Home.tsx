@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase';
 interface SettingsData {
   hero_heading: string;
   hero_subtext: string;
-  banner_img_url: string;
   wa_number: string;
   notice_board: string;
   shop_cta_text: string;
@@ -47,7 +46,7 @@ export const Home: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('settings')
-          .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board, shop_cta_text')
+          .select('hero_heading, hero_subtext, wa_number, notice_board, shop_cta_text')
           .eq('id', 'main')
           .single();
 

@@ -18,7 +18,6 @@ interface NoticeItem {
 interface SiteSettings {
   hero_heading: string;
   hero_subtext: string;
-  banner_img_url: string;
   wa_number: string;
   team: TeamMember[];
   categories: string[];
@@ -29,7 +28,6 @@ interface SiteSettings {
 const emptySettings: SiteSettings = {
   hero_heading: '',
   hero_subtext: '',
-  banner_img_url: '',
   wa_number: '',
   team: [],
   categories: [],
@@ -75,7 +73,7 @@ export const CMS: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('hero_heading, hero_subtext, banner_img_url, wa_number, notice_board, team, categories, farm_types, shop_cta_text')
+        .select('hero_heading, hero_subtext, wa_number, notice_board, team, categories, farm_types, shop_cta_text')
         .eq('id', 'main')
         .single();
 
@@ -83,7 +81,6 @@ export const CMS: React.FC = () => {
       setSettings({
         hero_heading: data.hero_heading || '',
         hero_subtext: data.hero_subtext || '',
-        banner_img_url: data.banner_img_url || '',
         wa_number: data.wa_number || '',
         team: Array.isArray(data.team) ? data.team : [],
         categories: Array.isArray(data.categories) ? data.categories : [],
@@ -112,7 +109,6 @@ export const CMS: React.FC = () => {
         .update({
           hero_heading: settings.hero_heading.trim(),
           hero_subtext: settings.hero_subtext.trim(),
-          banner_img_url: settings.banner_img_url.trim(),
           wa_number: settings.wa_number.trim(),
           notice_board: serializeNotices(notices),
           team: settings.team,
@@ -228,8 +224,7 @@ export const CMS: React.FC = () => {
           <div className="form-group"><label htmlFor="cmsHeading">Hero Main Headline</label><input id="cmsHeading" className="form-control" value={settings.hero_heading} onChange={(e) => setSettings({ ...settings, hero_heading: e.target.value })} required /></div>
           <div className="form-group"><label htmlFor="cmsSubtext">Hero Subtitle</label><textarea id="cmsSubtext" className="form-control" value={settings.hero_subtext} onChange={(e) => setSettings({ ...settings, hero_subtext: e.target.value })} rows={4} required /></div>
           <div className="form-group"><label htmlFor="cmsShopCta">Primary Shop Button Text</label><input id="cmsShopCta" className="form-control" placeholder="e.g. Shop Mangoes, Buy Fresh Rice" value={settings.shop_cta_text} onChange={(e) => setSettings({ ...settings, shop_cta_text: e.target.value })} maxLength={40} required /><small>Change this seasonally without editing code.</small></div>
-          <div className="form-group"><label htmlFor="cmsBanner">Hero Background Image URL</label><input type="url" id="cmsBanner" className="form-control" value={settings.banner_img_url} onChange={(e) => setSettings({ ...settings, banner_img_url: e.target.value })} /></div>
-          <div className="form-group"><label htmlFor="cmsWhatsapp">WhatsApp Operational Number</label><input id="cmsWhatsapp" className="form-control" placeholder="Digits only, e.g. 919876543210" value={settings.wa_number} onChange={(e) => setSettings({ ...settings, wa_number: e.target.value.replace(/\D/g, '') })} /><small>Leave blank to hide the WhatsApp calls to action.</small></div>
+<div className="form-group"><label htmlFor="cmsWhatsapp">WhatsApp Operational Number</label><input id="cmsWhatsapp" className="form-control" placeholder="Digits only, e.g. 919876543210" value={settings.wa_number} onChange={(e) => setSettings({ ...settings, wa_number: e.target.value.replace(/\D/g, '') })} /><small>Leave blank to hide the WhatsApp calls to action.</small></div>
 
           {/* Notice Board — individual items */}
           <div className="form-group">
