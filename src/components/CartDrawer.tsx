@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, MessageCircle, ShoppingBag, Trash2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
@@ -16,6 +17,7 @@ export const CartDrawer: React.FC = () => {
   } = useCart();
 
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waNumber, setWaNumber] = useState('');
@@ -236,8 +238,11 @@ export const CartDrawer: React.FC = () => {
               <div className="cart-empty">
                 <ShoppingBag className="cart-empty-icon" />
                 <p>Your cart is empty.</p>
-                <button className="btn btn-primary" onClick={handleCloseDrawer}>
-                  Shop Mangoes
+                <button
+                  className="btn btn-primary"
+                  onClick={() => { handleCloseDrawer(); navigate('/shop'); }}
+                >
+                  Shop
                 </button>
               </div>
             ) : (

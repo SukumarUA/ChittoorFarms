@@ -125,48 +125,48 @@ export const About: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '380px', height: '380px', borderRadius: '50%', overflow: 'hidden', border: '8px solid var(--secondary)', boxShadow: '0 16px 48px rgba(30, 94, 58, 0.18)', background: '#fff' }}>
+        <div className="about-logo-wrapper">
+          <div className="about-logo-circle">
             <img
               src="/CTRFLOGO.jpeg"
               alt="Chittoor Farms Logo"
-              style={{ width: '100%', height: '100%', transform: 'scale(1.18)', objectFit: 'cover' }}
+              className="about-logo-img"
             />
           </div>
         </div>
       </section>
 
       {/* Heritage Section */}
-      <section className="heritage-section" style={{ marginTop: '5rem', marginBottom: '5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <span className="badge" style={{ background: 'rgba(30, 94, 58, 0.05)', color: 'var(--secondary)', border: '1px solid rgba(30, 94, 58, 0.15)', letterSpacing: '0.05em', padding: '0.4rem 1.2rem', marginBottom: '1.25rem' }}>
+      <section className="heritage-section">
+        <div className="heritage-intro">
+          <span className="heritage-badge">
             • CHITTOOR, INDIA'S MANGO PARADISE •
           </span>
-          <h2 style={{ fontSize: '2.5rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>
+          <h2 className="heritage-title">
             Discover Chittoor's Mango Cultivation Heritage
           </h2>
         </div>
 
-        <div className="heritage-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3.5rem', marginBottom: '4rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+        <div className="heritage-grid">
+          <div className="heritage-col">
+            <p>
               Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.
             </p>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+            <p>
               Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.
             </p>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+            <p>
               While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+          <div className="heritage-col">
+            <p>
               What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.
             </p>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+            <p>
               To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.
             </p>
-            <p style={{ fontSize: '1.02rem', lineHeight: '1.7', color: 'var(--text-muted)' }}>
+            <p>
               However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly—ensuring fair profits reach the growers while enjoying premium, naturally ripened fruit delivered straight to your home.
             </p>
           </div>
