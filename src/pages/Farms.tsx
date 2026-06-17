@@ -591,13 +591,13 @@ export const Farms: React.FC = () => {
                         <div className="farm-profile-media-grid">
                           {ytUrls.map((url, idx) => (
                             <div key={`yt-${idx}`} className="farm-profile-media-card">
-                              <div className="farm-profile-media-label"><Video size={18} /> YouTube{ytUrls.length > 1 ? ` (${idx + 1})` : ''}</div>
+                              <div className="farm-profile-media-label"><Video size={18} /> YouTube</div>
                               <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(url) || ''} title={`${farmModal.farm.farmer_name} YouTube video ${idx + 1}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
                             </div>
                           ))}
                           {igUrls.map((url, idx) => (
                             <div key={`ig-${idx}`} className="farm-profile-media-card">
-                              <div className="farm-profile-media-label instagram"><Images size={18} /> Instagram{igUrls.length > 1 ? ` (${idx + 1})` : ''}</div>
+                              <div className="farm-profile-media-label instagram"><Images size={18} /> Instagram</div>
                               <div className="farm-instagram-wrapper farm-instagram-inline">
                                 <blockquote className="instagram-media" data-instgrm-permalink={getInstagramPermalink(url) || url} data-instgrm-version="14">
                                   <a href={url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
@@ -616,7 +616,7 @@ export const Farms: React.FC = () => {
                 const igUrls = getInstagramUrls(farmModal.farm).filter((u) => getInstagramPermalink(u));
                 return igUrls.map((url, idx) => (
                   <div key={idx} className="farm-instagram-wrapper" style={idx > 0 ? { marginTop: '1.5rem' } : undefined}>
-                    {igUrls.length > 1 && <div className="farm-profile-media-label instagram" style={{ marginBottom: '0.5rem' }}><Images size={16} /> Post {idx + 1}</div>}
+                    {igUrls.length > 1 && <div className="farm-profile-media-label instagram" style={{ marginBottom: '0.5rem' }}><Images size={16} /> Instagram</div>}
                     <blockquote className="instagram-media" data-instgrm-permalink={getInstagramPermalink(url) || url} data-instgrm-version="14">
                       <a href={url} target="_blank" rel="noreferrer">View this farm post on Instagram</a>
                     </blockquote>
@@ -628,7 +628,7 @@ export const Farms: React.FC = () => {
                 const ytUrls = getYoutubeUrls(farmModal.farm).filter((u) => getYouTubeEmbedUrl(u));
                 return ytUrls.map((url, idx) => (
                   <div key={idx} style={idx > 0 ? { marginTop: '1.5rem' } : undefined}>
-                    {ytUrls.length > 1 && <div className="farm-profile-media-label" style={{ marginBottom: '0.5rem' }}><Video size={16} /> Video {idx + 1}</div>}
+                    {ytUrls.length > 1 && <div className="farm-profile-media-label" style={{ marginBottom: '0.5rem' }}><Video size={16} /> YouTube</div>}
                     <div className="farm-video-frame"><iframe src={getYouTubeEmbedUrl(url) || ''} title={`${farmModal.farm.farmer_name} YouTube video ${idx + 1}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
                   </div>
                 ));
