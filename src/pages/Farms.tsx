@@ -521,8 +521,10 @@ export const Farms: React.FC = () => {
                       <span className="farm-profile-verified"><ShieldCheck size={15} /> Verified Chittoor Farms Partner</span>
                     </div>
                     <div className="farm-profile-intro">
-                      <p className="farm-profile-farm-name">{farmModal.farm.farm_name}</p>
-                      {farmModal.farm.farm_type && <span className="farm-card-type">{farmModal.farm.farm_type}</span>}
+                      <p className="farm-profile-farm-name">
+                        {farmModal.farm.farm_name}
+                        {farmModal.farm.farm_type && <span className="farm-card-type"> — {farmModal.farm.farm_type}</span>}
+                      </p>
                       <h2>{farmModal.farm.farmer_name}</h2>
                       <p className="farm-profile-location"><MapPin size={18} /> {farmModal.farm.location}</p>
 
