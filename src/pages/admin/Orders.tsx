@@ -295,7 +295,7 @@ export const Orders: React.FC = () => {
         order.address,
         order.pin_code || '',
         order.preferred_delivery_date || 'ASAP',
-        order.items.map((item) => `${item.name}: ${item.quantity} ${item.unit} x Rs.${item.price}`).join('; '),
+        order.items.map((item) => `${item.name}: ${item.quantity}${item.unit} x Rs.${item.price}`).join('; '),
         order.total,
         order.payment_mode || '',
         order.payment_amount ?? '',
@@ -320,7 +320,7 @@ export const Orders: React.FC = () => {
         <td>${escapeHtml(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
         <td>${escapeHtml(formatDateTime(order.created_at))}</td>
         <td><strong>${escapeHtml(order.customer_name)}</strong><br>${escapeHtml(order.phone)}<br>${escapeHtml(order.address)} ${order.pin_code ? `- ${escapeHtml(order.pin_code)}` : ''}</td>
-        <td>${order.items.map((item) => `${escapeHtml(item.name)}: ${escapeHtml(item.quantity)} ${escapeHtml(item.unit)}`).join('<br>')}</td>
+        <td>${order.items.map((item) => `${escapeHtml(item.name)} × ${item.quantity}${escapeHtml(item.unit.replace(/^1\s*/, ''))}`).join('<br>')}</td>
         <td>${escapeHtml(order.preferred_delivery_date || 'ASAP')}</td>
         <td>Rs.${escapeHtml(order.total)}</td>
       </tr>
@@ -451,7 +451,7 @@ export const Orders: React.FC = () => {
                     <div className="order-items-list">
                       {order.items.map((item, i) => (
                         <div key={i} className="order-item-row" style={{ gap: '1rem' }}>
-                          <span>{item.name} × {item.quantity} {item.unit}</span>
+                          <span>{item.name} × {item.quantity}{item.unit.replace(/^1\s*/, '')}</span>
                           <span style={{ color: 'var(--text-muted)' }}>@ ₹{item.price}/unit</span>
                         </div>
                       ))}
