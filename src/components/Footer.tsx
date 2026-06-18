@@ -1,29 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { supabase } from '../lib/supabase';
+import { useSettings } from '../context/SettingsContext';
 
 export const Footer: React.FC = () => {
-  const [waNumber, setWaNumber] = useState('919390033516');
-
-  useEffect(() => {
-    const fetchWaNumber = async () => {
-      try {
-        const { data } = await supabase
-          .from('settings')
-          .select('wa_number')
-          .eq('id', 'main')
-          .single();
-        if (data?.wa_number) {
-          setWaNumber(data.wa_number);
-        }
-      } catch (err) {
-        console.error('Error fetching WA number in footer:', err);
-      }
-    };
-    fetchWaNumber();
-  }, []);
+  const { settings } = useSettings();
+  const waNumber = settings.wa_number;
 
   return (
     <footer className="app-footer">
@@ -132,6 +115,11 @@ export const Footer: React.FC = () => {
           <p>© {new Date().getFullYear()} Chittoor Farms. All rights reserved.</p>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
             Bypassing middle-men & cold storage for authentic farm sweetness.
+          </p>
+          <p style={{ marginTop: '0.4rem' }}>
+            <Link to="/privacy" style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', textDecoration: 'underline' }}>
+              Privacy Policy
+            </Link>
           </p>
         </div>
       </div>

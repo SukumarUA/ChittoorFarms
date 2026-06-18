@@ -10,6 +10,11 @@ interface TeamMember {
 }
 
 export const About: React.FC = () => {
+  useEffect(() => {
+    document.title = 'About Us | Chittoor Farms';
+    return () => { document.title = 'Chittoor Farms — Fresh from Farm to Home'; };
+  }, []);
+
   const { showToast } = useToast();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [isBookingOpen, setIsBookingOpen] = useState(false);

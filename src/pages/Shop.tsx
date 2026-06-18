@@ -19,6 +19,11 @@ interface Product {
 }
 
 export const Shop: React.FC = () => {
+  useEffect(() => {
+    document.title = 'Shop | Chittoor Farms';
+    return () => { document.title = 'Chittoor Farms — Fresh from Farm to Home'; };
+  }, []);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);

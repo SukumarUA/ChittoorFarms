@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Truck, Award, Leaf, Pin, Sprout } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
-
-interface SettingsData {
-  hero_heading: string;
-  hero_subtext: string;
-  wa_number: string;
-  notice_board: string;
-  shop_cta_text: string;
-}
+import { useSettings } from '../context/SettingsContext';
 
 interface FeaturedFarmUpdate {
   id: string;
@@ -36,29 +29,12 @@ const greetings = [
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<SettingsData | null>(null);
+  const { settings } = useSettings();
   const [featuredFarmUpdates, setFeaturedFarmUpdates] = useState<FeaturedFarmUpdate[]>([]);
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0);
   const [activeGreetingIndex, setActiveGreetingIndex] = useState(0);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('hero_heading, hero_subtext, wa_number, notice_board, shop_cta_text')
-          .eq('id', 'main')
-          .single();
-
-        if (error) throw error;
-        setSettings(data);
-      } catch (err) {
-        console.error('Error fetching home page settings:', err);
-      }
-    };
-
-    fetchSettings();
-
     const fetchFeaturedFarmUpdates = async () => {
       try {
         const { data, error } = await supabase
@@ -79,16 +55,11 @@ export const Home: React.FC = () => {
     fetchFeaturedFarmUpdates();
   }, []);
 
-  // Default fallbacks in case Supabase loading fails or is empty
-  const heroHeading = settings?.hero_heading || 'Delicious Chittoor Mangoes, Straight from Farms';
-  const heroSubtext =
-    settings?.hero_subtext ||
-    'Experience the unparalleled taste of premium, naturally ripened mangoes directly from local family orchards. Delivered fresh to you within hours of picking, bypassing cold storage entirely.';
-  const waNumber = settings?.wa_number || '919390033516';
-  const shopCtaText = settings?.shop_cta_text || 'Shop Mangoes';
-  
-  const noticeBoardText = settings?.notice_board ?? 
-    "• Notice: Fresh Banganapalli harvest arriving this Friday! Pre-orders are open now.\n• Orchard Visits: Bookings for Sri Venkateswara Farm visits are available for the coming Sunday.";
+  const heroHeading   = settings.hero_heading;
+  const heroSubtext   = settings.hero_subtext;
+  const waNumber      = settings.wa_number;
+  const shopCtaText   = settings.shop_cta_text;
+  const noticeBoardText = settings.notice_board;
   const cmsNotices = noticeBoardText.split('\n').filter(line => line.trim() !== '');
   const farmNotices = featuredFarmUpdates.map((farm) => `${farm.farm_name}: ${farm.farm_update}`);
   const notices = [...cmsNotices, ...farmNotices];

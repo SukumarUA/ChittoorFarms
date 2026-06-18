@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
+import { SettingsProvider } from './context/SettingsContext';
 
 // Layout & Global Components
 import { Navbar } from './components/Navbar';
@@ -18,6 +19,7 @@ import { Shop } from './pages/Shop';
 import { Farms } from './pages/Farms';
 import { About } from './pages/About';
 import { NotFound } from './pages/NotFound';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 // Admin Pages — lazy loaded so they're excluded from the public bundle
 const Login       = lazy(() => import('./pages/admin/Login').then(m => ({ default: m.Login })));
@@ -52,6 +54,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <ToastProvider>
+        <SettingsProvider>
         <CartProvider>
           <BrowserRouter>
             <Routes>
@@ -61,6 +64,7 @@ const App: React.FC = () => {
                 <Route path="shop" element={<Shop />} />
                 <Route path="farms" element={<Farms />} />
                 <Route path="about" element={<About />} />
+                <Route path="privacy" element={<PrivacyPolicy />} />
               </Route>
 
               {/* Admin — lazy loaded, excluded from public bundle */}
@@ -85,6 +89,7 @@ const App: React.FC = () => {
             </Routes>
           </BrowserRouter>
         </CartProvider>
+        </SettingsProvider>
       </ToastProvider>
     </AuthProvider>
   );

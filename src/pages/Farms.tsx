@@ -146,6 +146,11 @@ const getYouTubeEmbedUrl = (url: string) => {
 };
 
 export const Farms: React.FC = () => {
+  useEffect(() => {
+    document.title = 'Our Farms | Chittoor Farms';
+    return () => { document.title = 'Chittoor Farms — Fresh from Farm to Home'; };
+  }, []);
+
   const { showToast } = useToast();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(true);

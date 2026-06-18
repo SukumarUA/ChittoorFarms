@@ -1,27 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { supabase } from '../lib/supabase';
+import { useSettings } from '../context/SettingsContext';
 
 export const WhatsAppWidget: React.FC = () => {
-  const [waNumber, setWaNumber] = useState('919390033516');
-
-  useEffect(() => {
-    const fetchWaNumber = async () => {
-      try {
-        const { data } = await supabase
-          .from('settings')
-          .select('wa_number')
-          .eq('id', 'main')
-          .single();
-        if (data?.wa_number) {
-          setWaNumber(data.wa_number);
-        }
-      } catch (err) {
-        console.error('Error fetching WA number in widget:', err);
-      }
-    };
-    fetchWaNumber();
-  }, []);
+  const { settings } = useSettings();
+  const waNumber = settings.wa_number;
 
   if (waNumber.trim() === '') {
     return null;
