@@ -7,6 +7,10 @@ export interface SiteSettings {
   wa_number: string;
   notice_board: string;
   shop_cta_text: string;
+  social_facebook: string;
+  social_instagram: string;
+  social_twitter: string;
+  social_youtube: string;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -17,6 +21,10 @@ const DEFAULTS: SiteSettings = {
   notice_board:
     '• Notice: Fresh Banganapalli harvest arriving this Friday! Pre-orders are open now.\n• Orchard Visits: Bookings for Sri Venkateswara Farm visits are available for the coming Sunday.',
   shop_cta_text: 'Shop Mangoes',
+  social_facebook: '',
+  social_instagram: '',
+  social_twitter: '',
+  social_youtube: '',
 };
 
 interface SettingsContextValue {
@@ -38,16 +46,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const { data, error } = await supabase
           .from('settings')
-          .select('hero_heading, hero_subtext, wa_number, notice_board, shop_cta_text')
+          .select('hero_heading, hero_subtext, wa_number, notice_board, shop_cta_text, social_facebook, social_instagram, social_twitter, social_youtube')
           .eq('id', 'main')
           .single();
         if (!error && data) {
           setSettings({
-            hero_heading:  data.hero_heading  || DEFAULTS.hero_heading,
-            hero_subtext:  data.hero_subtext  || DEFAULTS.hero_subtext,
-            wa_number:     data.wa_number     || DEFAULTS.wa_number,
-            notice_board:  data.notice_board  ?? DEFAULTS.notice_board,
-            shop_cta_text: data.shop_cta_text || DEFAULTS.shop_cta_text,
+            hero_heading:     data.hero_heading     || DEFAULTS.hero_heading,
+            hero_subtext:     data.hero_subtext     || DEFAULTS.hero_subtext,
+            wa_number:        data.wa_number        || DEFAULTS.wa_number,
+            notice_board:     data.notice_board     ?? DEFAULTS.notice_board,
+            shop_cta_text:    data.shop_cta_text    || DEFAULTS.shop_cta_text,
+            social_facebook:  data.social_facebook  || '',
+            social_instagram: data.social_instagram || '',
+            social_twitter:   data.social_twitter   || '',
+            social_youtube:   data.social_youtube   || '',
           });
         }
       } catch (err) {

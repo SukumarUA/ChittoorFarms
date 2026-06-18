@@ -23,6 +23,10 @@ interface SiteSettings {
   categories: string[];
   farm_types: string[];
   shop_cta_text: string;
+  social_facebook: string;
+  social_instagram: string;
+  social_twitter: string;
+  social_youtube: string;
 }
 
 const emptySettings: SiteSettings = {
@@ -33,6 +37,10 @@ const emptySettings: SiteSettings = {
   categories: [],
   farm_types: [],
   shop_cta_text: 'Shop Mangoes',
+  social_facebook: '',
+  social_instagram: '',
+  social_twitter: '',
+  social_youtube: '',
 };
 
 /** Parse the stored newline-separated string into individual notice items */
@@ -73,19 +81,23 @@ export const CMS: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('hero_heading, hero_subtext, wa_number, notice_board, team, categories, farm_types, shop_cta_text')
+        .select('hero_heading, hero_subtext, wa_number, notice_board, team, categories, farm_types, shop_cta_text, social_facebook, social_instagram, social_twitter, social_youtube')
         .eq('id', 'main')
         .single();
 
       if (error) throw error;
       setSettings({
-        hero_heading: data.hero_heading || '',
-        hero_subtext: data.hero_subtext || '',
-        wa_number: data.wa_number || '',
-        team: Array.isArray(data.team) ? data.team : [],
-        categories: Array.isArray(data.categories) ? data.categories : [],
-        farm_types: Array.isArray(data.farm_types) ? data.farm_types : [],
-        shop_cta_text: data.shop_cta_text || 'Shop Mangoes',
+        hero_heading:     data.hero_heading     || '',
+        hero_subtext:     data.hero_subtext     || '',
+        wa_number:        data.wa_number        || '',
+        team:             Array.isArray(data.team) ? data.team : [],
+        categories:       Array.isArray(data.categories) ? data.categories : [],
+        farm_types:       Array.isArray(data.farm_types) ? data.farm_types : [],
+        shop_cta_text:    data.shop_cta_text    || 'Shop Mangoes',
+        social_facebook:  data.social_facebook  || '',
+        social_instagram: data.social_instagram || '',
+        social_twitter:   data.social_twitter   || '',
+        social_youtube:   data.social_youtube   || '',
       });
       setNotices(parseNotices(data.notice_board || ''));
     } catch (error) {
@@ -107,15 +119,19 @@ export const CMS: React.FC = () => {
       const { error } = await supabase
         .from('settings')
         .update({
-          hero_heading: settings.hero_heading.trim(),
-          hero_subtext: settings.hero_subtext.trim(),
-          wa_number: settings.wa_number.trim(),
-          notice_board: serializeNotices(notices),
-          team: settings.team,
-          categories: settings.categories,
-          farm_types: settings.farm_types,
-          shop_cta_text: settings.shop_cta_text.trim() || 'Shop Mangoes',
-          updated_at: new Date().toISOString(),
+          hero_heading:     settings.hero_heading.trim(),
+          hero_subtext:     settings.hero_subtext.trim(),
+          wa_number:        settings.wa_number.trim(),
+          notice_board:     serializeNotices(notices),
+          team:             settings.team,
+          categories:       settings.categories,
+          farm_types:       settings.farm_types,
+          shop_cta_text:    settings.shop_cta_text.trim() || 'Shop Mangoes',
+          social_facebook:  settings.social_facebook.trim(),
+          social_instagram: settings.social_instagram.trim(),
+          social_twitter:   settings.social_twitter.trim(),
+          social_youtube:   settings.social_youtube.trim(),
+          updated_at:       new Date().toISOString(),
         })
         .eq('id', 'main');
 
@@ -225,6 +241,30 @@ export const CMS: React.FC = () => {
           <div className="form-group"><label htmlFor="cmsSubtext">Hero Subtitle</label><textarea id="cmsSubtext" className="form-control" value={settings.hero_subtext} onChange={(e) => setSettings({ ...settings, hero_subtext: e.target.value })} rows={4} required /></div>
           <div className="form-group"><label htmlFor="cmsShopCta">Primary Shop Button Text</label><input id="cmsShopCta" className="form-control" placeholder="e.g. Shop Mangoes, Buy Fresh Rice" value={settings.shop_cta_text} onChange={(e) => setSettings({ ...settings, shop_cta_text: e.target.value })} maxLength={40} required /><small>Change this seasonally without editing code.</small></div>
 <div className="form-group"><label htmlFor="cmsWhatsapp">WhatsApp Operational Number</label><input id="cmsWhatsapp" className="form-control" placeholder="Digits only, e.g. 919876543210" value={settings.wa_number} onChange={(e) => setSettings({ ...settings, wa_number: e.target.value.replace(/\D/g, '') })} /><small>Leave blank to hide the WhatsApp calls to action.</small></div>
+
+          {/* Social Media Links */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label style={{ fontWeight: 600, fontSize: '0.95rem' }}>Social Media Links</label>
+            <small style={{ display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>These appear as icons in the footer. Leave blank to hide an icon.</small>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ width: '90px', fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>Facebook</span>
+                <input className="form-control" placeholder="https://facebook.com/..." value={settings.social_facebook} onChange={(e) => setSettings({ ...settings, social_facebook: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ width: '90px', fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>Instagram</span>
+                <input className="form-control" placeholder="https://instagram.com/..." value={settings.social_instagram} onChange={(e) => setSettings({ ...settings, social_instagram: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ width: '90px', fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>Twitter / X</span>
+                <input className="form-control" placeholder="https://twitter.com/..." value={settings.social_twitter} onChange={(e) => setSettings({ ...settings, social_twitter: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ width: '90px', fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>YouTube</span>
+                <input className="form-control" placeholder="https://youtube.com/..." value={settings.social_youtube} onChange={(e) => setSettings({ ...settings, social_youtube: e.target.value })} />
+              </div>
+            </div>
+          </div>
 
           {/* Notice Board — individual items */}
           <div className="form-group">
