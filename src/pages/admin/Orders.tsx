@@ -295,7 +295,7 @@ export const Orders: React.FC = () => {
         order.address,
         order.pin_code || '',
         order.preferred_delivery_date || 'ASAP',
-        order.items.map((item) => `${item.name}: ${item.quantity}${item.unit} x Rs.${item.price}`).join('; '),
+        order.items.map((item) => `${item.name}: ${item.quantity}${item.unit.replace(/^1\s*/, '')} x Rs.${item.price}`).join('; ') + `; Total: ${order.items.reduce((sum, item) => sum + item.quantity, 0)}kg`,
         order.total,
         order.payment_mode || '',
         order.payment_amount ?? '',
@@ -320,7 +320,7 @@ export const Orders: React.FC = () => {
         <td>${escapeHtml(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
         <td>${escapeHtml(formatDateTime(order.created_at))}</td>
         <td><strong>${escapeHtml(order.customer_name)}</strong><br>${escapeHtml(order.phone)}<br>${escapeHtml(order.address)} ${order.pin_code ? `- ${escapeHtml(order.pin_code)}` : ''}</td>
-        <td>${order.items.map((item) => `${escapeHtml(item.name)} × ${item.quantity}${escapeHtml(item.unit.replace(/^1\s*/, ''))}`).join('<br>')}</td>
+        <td>${order.items.map((item) => `${escapeHtml(item.name)} × ${item.quantity}${escapeHtml(item.unit.replace(/^1\s*/, ''))}`).join('<br>')}<br><strong>Total: ${order.items.reduce((sum, item) => sum + item.quantity, 0)}kg</strong></td>
         <td>${escapeHtml(order.preferred_delivery_date || 'ASAP')}</td>
         <td>Rs.${escapeHtml(order.total)}</td>
       </tr>
@@ -455,6 +455,9 @@ export const Orders: React.FC = () => {
                           <span style={{ color: 'var(--text-muted)' }}>@ ₹{item.price}/unit</span>
                         </div>
                       ))}
+                      <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.4rem', paddingTop: '0.3rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                        Total: {order.items.reduce((sum, item) => sum + item.quantity, 0)}kg
+                      </div>
                     </div>
                   </td>
                   
