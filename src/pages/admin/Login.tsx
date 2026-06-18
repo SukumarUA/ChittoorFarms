@@ -57,6 +57,16 @@ export const Login: React.FC = () => {
     }
     setIsBusy(true);
     try {
+      // Only allow reset for emails already registered as admins in Supabase
+      const { data: isAdminEmail, error: rpcError } = await supabase.rpc('is_admin_email', {
+        p_email: email.trim().toLowerCase(),
+      });
+      if (rpcError) throw rpcError;
+      if (!isAdminEmail) {
+        showToast('This email is not registered as an admin.', 'error');
+        return;
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
         { redirectTo: `${window.location.origin}/admin/reset-password` }
