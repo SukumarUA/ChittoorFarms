@@ -118,7 +118,7 @@ export const Footer: React.FC = () => {
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Mail size={14} />
-                <span>contact@chittoorfarms.com</span>
+                <span>contact@chittoorfarms.in</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MapPin size={14} />
