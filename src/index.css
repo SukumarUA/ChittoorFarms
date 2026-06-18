@@ -1397,14 +1397,22 @@ main.main-content {
 .product-img-stock.low { background: rgba(255,255,255,0.88); color: var(--warning); }
 .product-img-stock.out { background: rgba(0,0,0,0.55);       color: #fff; }
 
-/* Description panel — slides in between image and title when open */
-.product-desc-panel {
-  background: rgba(245, 252, 237, 0.97);
-  border-top: 2px solid var(--primary);
-  padding: 0.55rem 0.8rem;
+/* Description overlay — covers the image when info icon is active */
+.product-desc-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  color: #fff;
   font-size: 0.78rem;
-  color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.55;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 8;
+  pointer-events: none;
 }
 
 /* Card body */
@@ -1421,12 +1429,14 @@ main.main-content {
   margin: 0;
 }
 
-/* Card footer */
+/* Card footer — price + button on one row */
 .product-card-footer {
   padding: 0.3rem 0.8rem 0.75rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .product-price {
@@ -1443,9 +1453,10 @@ main.main-content {
 }
 
 .add-cart-btn {
-  width: 100%;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.82rem;
+  flex-shrink: 0;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
 .product-incart-row {
@@ -1453,14 +1464,16 @@ main.main-content {
   align-items: center;
   justify-content: space-between;
   background: var(--bg-muted);
-  padding: 0.25rem 0.4rem;
+  padding: 0.2rem 0.35rem;
   border-radius: var(--radius-md);
+  flex-shrink: 0;
+  gap: 0.3rem;
 }
 
 .product-incart-label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding-left: 0.3rem;
+  padding-left: 0.2rem;
 }
 
 /* Farms page styles */

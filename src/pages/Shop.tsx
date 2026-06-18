@@ -189,14 +189,13 @@ export const Shop: React.FC = () => {
                   <div className={`product-img-stock ${product.stock === 0 ? 'out' : product.stock < 10 ? 'low' : 'ok'}`}>
                     {product.stock === 0 ? 'Out of stock' : product.stock < 10 ? `⚠ ${product.stock}kg left` : '✓ Available'}
                   </div>
+                  {/* Description overlay — appears on the image itself */}
+                  {openTooltip === product.id && product.description && (
+                    <div className="product-desc-overlay" role="tooltip">
+                      {product.description}
+                    </div>
+                  )}
                 </div>
-
-                {/* Description tooltip panel — slides in below image when open */}
-                {openTooltip === product.id && product.description && (
-                  <div className="product-desc-panel" role="tooltip">
-                    {product.description}
-                  </div>
-                )}
 
                 {/* Card body: name only */}
                 <div className="product-card-body">
