@@ -125,6 +125,12 @@ export const CartDrawer: React.FC = () => {
       return;
     }
 
+    const totalKg = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalKg < 5) {
+      showToast(`Minimum order is 5kg. Your cart has ${totalKg}kg — please add more items.`, 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -309,6 +315,11 @@ export const CartDrawer: React.FC = () => {
                 <span>Subtotal</span>
                 <span>₹{cartTotal}</span>
               </div>
+              {cartItems.reduce((sum, item) => sum + item.quantity, 0) < 5 && (
+                <div style={{ fontSize: '0.82rem', color: 'var(--error, #c0392b)', background: 'rgba(192,57,43,0.07)', border: '1px solid rgba(192,57,43,0.25)', borderRadius: 'var(--radius-sm)', padding: '0.45rem 0.7rem', marginBottom: '0.5rem' }}>
+                  Minimum order is 5kg — add {5 - cartItems.reduce((sum, item) => sum + item.quantity, 0)}kg more to proceed
+                </div>
+              )}
               <button className="btn btn-secondary cart-checkout-btn" onClick={handleOpenCheckout}>
                 <span>Proceed to checkout</span>
                 <ArrowRight size={18} />
