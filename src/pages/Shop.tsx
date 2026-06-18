@@ -94,19 +94,19 @@ export const Shop: React.FC = () => {
   return (
     <div className="container">
       <div className="shop-header">
-        <div>
-          <h1>Fresh Farm Harvest</h1>
-          <p>Hand-picked from our orchards and fields, naturally grown and delivered fresh.</p>
-        </div>
+        <h1>Fresh Farm Harvest</h1>
+        <p>Hand-picked from our orchards and fields, naturally grown and delivered fresh.</p>
+      </div>
 
-        {/* Dynamic Category Filters */}
-        <div className="filter-group" style={{ flexWrap: 'wrap' }}>
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All Products
-          </button>
+      {/* Filter bar — All Products pinned, categories scroll */}
+      <div className="shop-filter-bar">
+        <button
+          className={`filter-btn filter-btn-pinned ${filter === 'all' ? 'active' : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          All Products
+        </button>
+        <div className="shop-filter-scroll">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -119,6 +119,7 @@ export const Shop: React.FC = () => {
         </div>
       </div>
 
+      {/* Search + count — always 1 line */}
       <div className="shop-search-toolbar">
         <div className="shop-search-box">
           <Search size={19} />
@@ -126,12 +127,12 @@ export const Shop: React.FC = () => {
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search products, categories, or uses..."
+            placeholder="Search products..."
             aria-label="Search shop products"
           />
           {searchTerm && <button type="button" onClick={() => setSearchTerm('')} aria-label="Clear product search"><X size={16} /></button>}
         </div>
-        <span className="shop-result-count">{filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'}</span>
+        <span className="shop-result-count">{filteredProducts.length} products</span>
       </div>
 
       {loading ? (
