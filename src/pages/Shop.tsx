@@ -146,13 +146,14 @@ export const Shop: React.FC = () => {
           <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); setFilter('all'); }}>Clear Filters</button>
         </div>
       ) : (
-        <div className="grid-responsive">
+        <div className="shop-product-grid">
           {filteredProducts.map((product) => {
             const cartItem = cartItems.find((item) => item.id === product.id);
             const isInCart = !!cartItem;
 
             return (
               <div key={product.id} className="product-card">
+                {/* Image + overlays */}
                 <div className="product-img-wrapper">
                   <img
                     src={
@@ -163,77 +164,57 @@ export const Shop: React.FC = () => {
                     className="product-img"
                     loading="lazy"
                   />
+                  {/* Category badge — top left */}
                   <span
                     className="product-badge badge badge-fresh"
                     style={{ textTransform: 'capitalize', background: 'var(--secondary-light)', color: 'var(--secondary)' }}
                   >
                     {product.category}
                   </span>
-                </div>
-
-                <div className="product-card-body">
-                  <div className="product-title-row">
-                    <h3 className="product-title">{product.name}</h3>
-                    <div className="product-price">
-                      ₹{product.price} <span>/ {product.unit}</span>
-                    </div>
-                  </div>
-
+                  {/* Info icon — top right */}
                   {product.description && (
-                    <div className="product-info-wrap">
-                      <button
-                        type="button"
-                        className="product-info-btn"
-                        onMouseEnter={() => setOpenTooltip(product.id)}
-                        onMouseLeave={() => setOpenTooltip(null)}
-                        onClick={() => setOpenTooltip(openTooltip === product.id ? null : product.id)}
-                        aria-label="About this product"
-                        aria-expanded={openTooltip === product.id}
-                      >
-                        <Info size={13} />
-                        <span>About this product</span>
-                      </button>
-                      {openTooltip === product.id && (
-                        <div className="product-tooltip-panel" role="tooltip">
-                          {product.description}
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="product-img-info-btn"
+                      onMouseEnter={() => setOpenTooltip(product.id)}
+                      onMouseLeave={() => setOpenTooltip(null)}
+                      onClick={() => setOpenTooltip(openTooltip === product.id ? null : product.id)}
+                      aria-label="About this product"
+                      aria-expanded={openTooltip === product.id}
+                    >
+                      <Info size={14} />
+                    </button>
                   )}
-
-                  {/* Stock Indicator */}
-                  <div className="product-stock-indicator">
-                    {product.stock === 0 ? (
-                      <span className="product-stock-out">Out of stock</span>
-                    ) : product.stock < 10 ? (
-                      <span className="product-stock-low">
-                        ⚠️ Only {product.stock} {product.unit} left
-                      </span>
-                    ) : (
-                      <span className="product-stock-ok" style={{ color: 'var(--success)', fontSize: '0.8rem' }}>
-                        ✓ Available
-                      </span>
-                    )}
+                  {/* Availability — bottom right */}
+                  <div className={`product-img-stock ${product.stock === 0 ? 'out' : product.stock < 10 ? 'low' : 'ok'}`}>
+                    {product.stock === 0 ? 'Out of stock' : product.stock < 10 ? `⚠ ${product.stock}kg left` : '✓ Available'}
                   </div>
                 </div>
 
+                {/* Description tooltip panel — slides in below image when open */}
+                {openTooltip === product.id && product.description && (
+                  <div className="product-desc-panel" role="tooltip">
+                    {product.description}
+                  </div>
+                )}
+
+                {/* Card body: name only */}
+                <div className="product-card-body">
+                  <h3 className="product-title">{product.name}</h3>
+                </div>
+
+                {/* Footer: price + action */}
                 <div className="product-card-footer">
+                  <div className="product-price">
+                    ₹{product.price} <span>/ {product.unit}</span>
+                  </div>
                   {product.stock === 0 ? (
-                    <button className="btn btn-outline" style={{ width: '100%', cursor: 'not-allowed' }} disabled>
+                    <button className="btn btn-outline add-cart-btn" disabled style={{ cursor: 'not-allowed' }}>
                       Out of stock
                     </button>
                   ) : isInCart ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'var(--bg-muted)',
-                        padding: '0.35rem 0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, paddingLeft: '0.5rem' }}>In Cart</span>
+                    <div className="product-incart-row">
+                      <span className="product-incart-label">In Cart</span>
                       <div className="cart-item-qty" style={{ margin: 0 }}>
                         <button
                           className="qty-btn"
