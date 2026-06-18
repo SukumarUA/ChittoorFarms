@@ -130,7 +130,7 @@ export const About: React.FC = () => {
 
             <div className="about-logo-wrapper">
               <div className="about-logo-circle">
-                <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms Logo" className="about-logo-img" />
+                <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms Logo" className="about-logo-img" loading="lazy" />
               </div>
             </div>
           </div>
@@ -196,7 +196,7 @@ export const About: React.FC = () => {
                 <div key={idx} className="team-card">
                   <div className="team-avatar-placeholder">
                     {member.image_url ? (
-                      <img className="team-avatar-image" src={member.image_url} alt={member.name} />
+                      <img className="team-avatar-image" src={member.image_url} alt={member.name} loading="lazy" />
                     ) : (
                       <Users size={32} />
                     )}

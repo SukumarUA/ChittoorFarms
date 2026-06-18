@@ -5,9 +5,26 @@
     <link rel="icon" type="image/jpeg" href="/CTRFarmsLOGO.jpeg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" rel="stylesheet" />
+    <!-- Non-blocking font load — swap avoids render block -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" /></noscript>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chittoor Farms</title>
+    <title>Chittoor Farms — Fresh from Farm to Home</title>
+    <meta name="description" content="Chittoor Farms brings you fresh, natural produce directly from our farms to your home. Shop seasonal fruits, vegetables, and more." />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.chittoorfarms.in/" />
+    <meta property="og:title" content="Chittoor Farms — Fresh from Farm to Home" />
+    <meta property="og:description" content="Fresh, natural produce delivered from our farms directly to your home. Seasonal fruits, vegetables, and more." />
+    <meta property="og:image" content="https://www.chittoorfarms.in/CTRFarmsLOGO.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chittoor Farms — Fresh from Farm to Home" />
+    <meta name="twitter:description" content="Fresh, natural produce delivered from our farms directly to your home." />
+    <meta name="twitter:image" content="https://www.chittoorfarms.in/CTRFarmsLOGO.png" />
   </head>
   <body>
     <div id="root"></div>

@@ -155,6 +155,7 @@ export const Shop: React.FC = () => {
                     }
                     alt={product.name}
                     className="product-img"
+                    loading="lazy"
                   />
                   <span
                     className="product-badge badge badge-fresh"

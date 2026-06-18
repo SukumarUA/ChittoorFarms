@@ -542,7 +542,7 @@ export const Farms: React.FC = () => {
                   <div className="farm-profile-hero">
                     <div className="farm-profile-portrait-wrap">
                       <div className="farm-profile-portrait">
-                        <img src={farmModal.farm.photo_url || farmerImageFallback} alt={farmModal.farm.farmer_name} onError={useFarmerImageFallback} />
+                        <img src={farmModal.farm.photo_url || farmerImageFallback} alt={farmModal.farm.farmer_name} onError={useFarmerImageFallback} loading="lazy" />
                       </div>
                       <span className="farm-profile-verified"><ShieldCheck size={15} /> Verified Chittoor Farms Partner</span>
                     </div>

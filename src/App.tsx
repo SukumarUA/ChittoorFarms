@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 
 // Context Providers
@@ -17,20 +17,21 @@ import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
 import { Farms } from './pages/Farms';
 import { About } from './pages/About';
+import { NotFound } from './pages/NotFound';
 
-// Admin Pages
-import { Login } from './pages/admin/Login';
-import { AdminLayout } from './pages/admin/AdminLayout';
-import { Dashboard } from './pages/admin/Dashboard';
-import { Orders } from './pages/admin/Orders';
-import { Products } from './pages/admin/Products';
-import { FarmsManager } from './pages/admin/FarmsManager';
-import { VisitsManager } from './pages/admin/VisitsManager';
-import { Applications } from './pages/admin/Applications';
-import { CMS } from './pages/admin/CMS';
-import { Payments } from './pages/admin/Payments';
-import { AdminReferrals } from './pages/admin/AdminReferrals';
-import { AdminPromos } from './pages/admin/AdminPromos';
+// Admin Pages — lazy loaded so they're excluded from the public bundle
+const Login       = lazy(() => import('./pages/admin/Login').then(m => ({ default: m.Login })));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const Dashboard   = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const Orders      = lazy(() => import('./pages/admin/Orders').then(m => ({ default: m.Orders })));
+const Products    = lazy(() => import('./pages/admin/Products').then(m => ({ default: m.Products })));
+const FarmsManager   = lazy(() => import('./pages/admin/FarmsManager').then(m => ({ default: m.FarmsManager })));
+const VisitsManager  = lazy(() => import('./pages/admin/VisitsManager').then(m => ({ default: m.VisitsManager })));
+const Applications   = lazy(() => import('./pages/admin/Applications').then(m => ({ default: m.Applications })));
+const CMS            = lazy(() => import('./pages/admin/CMS').then(m => ({ default: m.CMS })));
+const Payments       = lazy(() => import('./pages/admin/Payments').then(m => ({ default: m.Payments })));
+const AdminReferrals = lazy(() => import('./pages/admin/AdminReferrals').then(m => ({ default: m.AdminReferrals })));
+const AdminPromos    = lazy(() => import('./pages/admin/AdminPromos').then(m => ({ default: m.AdminPromos })));
 
 // Public Layout Wrapper
 const PublicLayout: React.FC = () => {
@@ -62,25 +63,25 @@ const App: React.FC = () => {
                 <Route path="about" element={<About />} />
               </Route>
 
-              {/* Admin login */}
-              <Route path="/admin/login" element={<Login />} />
-
-              {/* Guarded Admin Dashboard */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="products" element={<Products />} />
-                <Route path="farms" element={<FarmsManager />} />
-                <Route path="visits" element={<VisitsManager />} />
-                <Route path="applications" element={<Applications />} />
-                <Route path="cms" element={<CMS />} />
-                <Route path="referrals" element={<AdminReferrals />} />
-                <Route path="promos" element={<AdminPromos />} />
+              {/* Admin — lazy loaded, excluded from public bundle */}
+              <Route path="/admin/login" element={<Suspense fallback={null}><Login /></Suspense>} />
+              <Route path="/admin" element={<Suspense fallback={null}><AdminLayout /></Suspense>}>
+                <Route index element={<Suspense fallback={null}><Dashboard /></Suspense>} />
+                <Route path="orders" element={<Suspense fallback={null}><Orders /></Suspense>} />
+                <Route path="payments" element={<Suspense fallback={null}><Payments /></Suspense>} />
+                <Route path="products" element={<Suspense fallback={null}><Products /></Suspense>} />
+                <Route path="farms" element={<Suspense fallback={null}><FarmsManager /></Suspense>} />
+                <Route path="visits" element={<Suspense fallback={null}><VisitsManager /></Suspense>} />
+                <Route path="applications" element={<Suspense fallback={null}><Applications /></Suspense>} />
+                <Route path="cms" element={<Suspense fallback={null}><CMS /></Suspense>} />
+                <Route path="referrals" element={<Suspense fallback={null}><AdminReferrals /></Suspense>} />
+                <Route path="promos" element={<Suspense fallback={null}><AdminPromos /></Suspense>} />
               </Route>
 
-              {/* Catch-all Redirect */}
-              <Route path="*" element={<Home />} />
+              {/* 404 */}
+              <Route path="*" element={<PublicLayout />}>
+                <Route path="*" element={<NotFound />} />
+              </Route>
             </Routes>
           </BrowserRouter>
         </CartProvider>
