@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  const isAdmin = !!user?.email && user.email === import.meta.env.VITE_ADMIN_EMAIL;
+  const isAdmin = user?.app_metadata?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ user, loading, isAdmin, signOut }}>

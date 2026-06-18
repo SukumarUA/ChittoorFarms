@@ -20,6 +20,7 @@ import { About } from './pages/About';
 
 // Admin Pages
 import { Login } from './pages/admin/Login';
+import { ResetPassword } from './pages/admin/ResetPassword';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { Dashboard } from './pages/admin/Dashboard';
 import { Orders } from './pages/admin/Orders';
@@ -64,6 +65,7 @@ const App: React.FC = () => {
 
               {/* Admin login */}
               <Route path="/admin/login" element={<Login />} />
+              <Route path="/admin/reset-password" element={<ResetPassword />} />
 
               {/* Guarded Admin Dashboard */}
               <Route path="/admin" element={<AdminLayout />}>
