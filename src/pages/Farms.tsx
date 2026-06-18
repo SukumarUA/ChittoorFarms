@@ -410,13 +410,13 @@ export const Farms: React.FC = () => {
 
   return (
     <div className="container farms-page">
+      {/* Row 1: Title + Join button */}
       <div className="farms-header">
-        <h1>Meet our partner farmers</h1>
-        <p>
-          Meet verified local growers and producers bringing authentic farm-fresh goods closer to you.
-        </p>
+        <h1 className="farms-title">Meet our partner farmers</h1>
+        <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join Chittoor Farms</button>
       </div>
 
+      {/* Row 2: Search + count + filter toggle */}
       <div className="farms-directory-toolbar">
         <div className="farms-search-row">
           <div className="farms-search-box">
@@ -436,7 +436,6 @@ export const Farms: React.FC = () => {
             {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
         </div>
-        <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join Chittoor Farms</button>
       </div>
 
       {showFilters && (
