@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ShoppingCart, X } from 'lucide-react';
+import { Search, ShoppingCart, X, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -29,6 +29,7 @@ export const Shop: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   const { addToCart, cartItems, updateQuantity } = useCart();
   const { showToast } = useToast();
@@ -178,7 +179,27 @@ export const Shop: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="product-desc">{product.description}</p>
+                  {product.description && (
+                    <div className="product-info-wrap">
+                      <button
+                        type="button"
+                        className="product-info-btn"
+                        onMouseEnter={() => setOpenTooltip(product.id)}
+                        onMouseLeave={() => setOpenTooltip(null)}
+                        onClick={() => setOpenTooltip(openTooltip === product.id ? null : product.id)}
+                        aria-label="About this product"
+                        aria-expanded={openTooltip === product.id}
+                      >
+                        <Info size={13} />
+                        <span>About this product</span>
+                      </button>
+                      {openTooltip === product.id && (
+                        <div className="product-tooltip-panel" role="tooltip">
+                          {product.description}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Stock Indicator */}
                   <div className="product-stock-indicator">
