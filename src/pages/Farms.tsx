@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, MapPin, Trees, Calendar, X, Image as ImageIcon, Upload, Images, Video, ExternalLink, Search, UserPlus, Megaphone, SlidersHorizontal } from 'lucide-react';
+import { ShieldCheck, MapPin, Trees, Calendar, X, Image as ImageIcon, Upload, Images, Video, ExternalLink, Search, UserPlus, Megaphone, SlidersHorizontal, Share2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const farmerImageFallback = '/CTRFLOGO.jpeg';
@@ -242,6 +242,26 @@ export const Farms: React.FC = () => {
     setIsApplyOpen(true);
   };
 
+  const handleShareFarm = async (farm: Farm, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const snippet = farm.story?.length > 120 ? farm.story.slice(0, 120).trimEnd() + '…' : farm.story || '';
+    const shareData = {
+      title: `${farm.farm_name} — Chittoor Farms`,
+      text: `Meet ${farm.farmer_name} from ${farm.location}${farm.since_year ? `, farming since ${farm.since_year}` : ''}.\n${snippet}`,
+      url: `${window.location.origin}/farms`,
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* user cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        showToast('Farm story copied to clipboard!', 'success');
+      } catch {
+        showToast('Unable to share. Please copy the link manually.', 'error');
+      }
+    }
+  };
+
   const normalizedFarmSearch = farmSearch.trim().toLowerCase();
   const normalize = (value: string | null | undefined) => value?.trim().toLowerCase() || '';
   const filteredFarms = farms.filter((farm) => {
@@ -460,6 +480,15 @@ export const Farms: React.FC = () => {
                     onError={useFarmerImageFallback}
                   />
                 </div>
+                <button
+                  type="button"
+                  className="farm-share-btn"
+                  onClick={(e) => handleShareFarm(farm, e)}
+                  aria-label={`Share ${farm.farm_name}`}
+                  title="Share this farm"
+                >
+                  <Share2 size={15} />
+                </button>
                 <span className="farm-verified-mark" title="Verified Partner" aria-label="Verified Partner">
                   <ShieldCheck size={16} />
                 </span>

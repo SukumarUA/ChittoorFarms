@@ -1623,6 +1623,29 @@ main.main-content {
   padding: 0.35rem 0 0.75rem;
 }
 
+.farm-share-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  z-index: 2;
+}
+.farm-share-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: scale(1.08);
+}
+
 .farm-img-wrapper {
   width: 112px;
   height: 112px;
