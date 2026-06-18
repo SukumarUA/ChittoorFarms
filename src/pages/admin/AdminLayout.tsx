@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Navigate, Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,11 +18,64 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;  // 15 minutes
+const WARN_BEFORE_MS  = 60 * 1000;        // warn 60 s before logout
+
 export const AdminLayout: React.FC = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('cf-admin-sidebar-collapsed') === 'true');
+  const [idleWarning, setIdleWarning] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const idleTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warnTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearAllTimers = () => {
+    if (idleTimer.current)    clearTimeout(idleTimer.current);
+    if (warnTimer.current)    clearTimeout(warnTimer.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
+
+  const handleAutoSignOut = useCallback(async () => {
+    clearAllTimers();
+    setIdleWarning(false);
+    await signOut();
+    navigate('/admin/login');
+  }, [signOut, navigate]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (!user || !isAdmin) return;
+    clearAllTimers();
+    setIdleWarning(false);
+    setCountdown(60);
+
+    warnTimer.current = setTimeout(() => {
+      setIdleWarning(true);
+      setCountdown(60);
+      countdownRef.current = setInterval(() => {
+        setCountdown((c) => {
+          if (c <= 1) return 0;
+          return c - 1;
+        });
+      }, 1000);
+    }, IDLE_TIMEOUT_MS - WARN_BEFORE_MS);
+
+    idleTimer.current = setTimeout(handleAutoSignOut, IDLE_TIMEOUT_MS);
+  }, [user, isAdmin, handleAutoSignOut]);
+
+  // Start / restart timers on mount and when auth state changes
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    resetIdleTimer();
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach((e) => window.addEventListener(e, resetIdleTimer, { passive: true }));
+    return () => {
+      clearAllTimers();
+      events.forEach((e) => window.removeEventListener(e, resetIdleTimer));
+    };
+  }, [user, isAdmin, resetIdleTimer]);
 
   const sectionTitles: Record<string, string> = {
     '/admin': 'Dashboard',
@@ -150,6 +203,27 @@ export const AdminLayout: React.FC = () => {
           </button>
         </div>
       </aside>
+
+      {/* Inactivity warning banner */}
+      {idleWarning && (
+        <div style={{
+          position: 'fixed', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, background: '#1a1a1a', color: '#fff', borderRadius: '10px',
+          padding: '1rem 1.5rem', boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+          display: 'flex', alignItems: 'center', gap: '1.2rem', fontSize: '0.95rem',
+          border: '1px solid rgba(255,100,100,0.4)', minWidth: '320px',
+        }}>
+          <span style={{ fontSize: '1.3rem' }}>⏱️</span>
+          <span>Session idle — signing out in <strong style={{ color: '#ff8a80' }}>{countdown}s</strong></span>
+          <button
+            type="button"
+            onClick={resetIdleTimer}
+            style={{ marginLeft: 'auto', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem' }}
+          >
+            Stay logged in
+          </button>
+        </div>
+      )}
 
       {/* Main Admin Workspace Area */}
       <div className="admin-workspace">
