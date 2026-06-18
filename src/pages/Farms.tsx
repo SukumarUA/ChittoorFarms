@@ -413,7 +413,7 @@ export const Farms: React.FC = () => {
       {/* Row 1: Title + Join button */}
       <div className="farms-header">
         <h1 className="farms-title">Meet our partner farmers</h1>
-        <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join Chittoor Farms</button>
+        <button type="button" className="btn btn-secondary farms-join-button" onClick={handleOpenForm}><UserPlus size={18} /> Join</button>
       </div>
 
       {/* Row 2: Search + count + filter toggle */}
