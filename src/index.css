@@ -1172,13 +1172,22 @@ main.main-content {
 }
 
 /* Shop Section & Catalog */
+/* ── Shop header: title left + filter pills right, single row ── */
 .shop-header {
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
-.shop-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.25rem;
+.shop-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--secondary);
+  line-height: 1;
 }
 
 /* ── Filter bar: All Products pinned + scrollable categories ── */
@@ -1188,32 +1197,38 @@ main.main-content {
   gap: 0;
   background: var(--bg-muted);
   border-radius: var(--radius-md);
-  padding: 0.35rem;
-  margin-bottom: 0.75rem;
+  padding: 0.3rem;
   overflow: hidden;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+  flex: 1;
+  min-width: 0;
 }
 
 .filter-btn-pinned {
   flex-shrink: 0;
   border-right: 1px solid var(--border-color) !important;
   border-radius: var(--radius-sm) 0 0 var(--radius-sm) !important;
-  margin-right: 0.35rem;
-  padding-right: 1rem;
+  margin-right: 0.3rem;
 }
 
 .shop-filter-scroll {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   flex: 1;
   min-width: 0;
-  padding: 0 0.1rem;
 }
 
 .shop-filter-scroll::-webkit-scrollbar { display: none; }
+
+/* On mobile: stack title above filter */
+@media (max-width: 600px) {
+  .shop-header { flex-wrap: wrap; gap: 0.5rem; }
+  .shop-title  { font-size: 1.3rem; }
+  .shop-filter-bar { flex: 1 1 100%; }
+}
 
 /* ── Search toolbar: always 1 line ── */
 .shop-search-toolbar {

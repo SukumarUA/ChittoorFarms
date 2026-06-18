@@ -93,29 +93,27 @@ export const Shop: React.FC = () => {
 
   return (
     <div className="container">
+      {/* Title + filters on one line */}
       <div className="shop-header">
-        <h1>Fresh Farm Harvest</h1>
-        <p>Hand-picked from our orchards and fields, naturally grown and delivered fresh.</p>
-      </div>
-
-      {/* Filter bar — All Products pinned, categories scroll */}
-      <div className="shop-filter-bar">
-        <button
-          className={`filter-btn filter-btn-pinned ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All Products
-        </button>
-        <div className="shop-filter-scroll">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              className={`filter-btn ${filter === cat ? 'active' : ''}`}
-              onClick={() => setFilter(cat)}
-            >
-              {cat}
-            </button>
-          ))}
+        <h1 className="shop-title">Fresh Farm Harvest</h1>
+        <div className="shop-filter-bar">
+          <button
+            className={`filter-btn filter-btn-pinned ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            All Products
+          </button>
+          <div className="shop-filter-scroll">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`filter-btn ${filter === cat ? 'active' : ''}`}
+                onClick={() => setFilter(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
