@@ -1735,8 +1735,7 @@ main.main-content {
 .farm-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  border-left: 4px solid var(--secondary);
+  border: 2px solid var(--secondary);
   padding: 1rem;
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -1748,7 +1747,7 @@ main.main-content {
 .farm-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--primary) 38%, var(--border-color));
+  border-color: var(--primary);
 }
 
 .farm-card-top {
