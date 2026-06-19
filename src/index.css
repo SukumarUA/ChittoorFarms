@@ -1351,8 +1351,7 @@ main.main-content {
 .product-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  border-left: 4px solid var(--secondary);
+  border: 2px solid var(--secondary);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
@@ -1364,8 +1363,7 @@ main.main-content {
 .product-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--primary) 38%, var(--border-color));
-  border-left-color: var(--secondary);
+  border-color: var(--primary);
 }
 
 /* ── Image wrapper (square) ── */
