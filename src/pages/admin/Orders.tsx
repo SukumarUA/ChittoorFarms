@@ -133,6 +133,13 @@ export const Orders: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
+  // Bulk selection state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [bulkFulfilling, setBulkFulfilling] = useState(false);
+
+  // Clear selection whenever the status tab changes
+  useEffect(() => { setSelectedOrderIds(new Set()); }, [activeTab]);
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -628,6 +635,99 @@ export const Orders: React.FC = () => {
     openPrint(wrapHtml('Referral & Promo Report', body));
   };
 
+  // ── Bulk selection helpers ────────────────────────────────────────────────
+  const pendingFiltered = filteredOrders; // alias for clarity when pending tab active
+  const allSelected = pendingFiltered.length > 0 && pendingFiltered.every((o) => selectedOrderIds.has(o.id));
+  const someSelected = pendingFiltered.some((o) => selectedOrderIds.has(o.id)) && !allSelected;
+
+  const toggleSelectAll = () => {
+    if (allSelected) { setSelectedOrderIds(new Set()); }
+    else { setSelectedOrderIds(new Set(pendingFiltered.map((o) => o.id))); }
+  };
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkFulfill = async () => {
+    if (!selectedOrderIds.size) return;
+    const ids = [...selectedOrderIds];
+    setBulkFulfilling(true);
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('orders')
+        .update({ status: 'fulfilled', payment_mode: 'Cash on delivery', payment_recorded_at: now })
+        .in('id', ids);
+      if (error) throw error;
+      setOrders((current) => current.map((o) =>
+        ids.includes(o.id) ? { ...o, status: 'fulfilled' as const, payment_mode: 'Cash on delivery' as const, payment_recorded_at: now } : o,
+      ));
+      showToast(`${ids.length} order${ids.length > 1 ? 's' : ''} marked fulfilled (COD).`, 'success');
+      setSelectedOrderIds(new Set());
+    } catch (err) {
+      console.error('Bulk fulfill error:', err);
+      showToast('Bulk fulfillment failed. Please try again.', 'error');
+    } finally {
+      setBulkFulfilling(false);
+    }
+  };
+
+  const handleBulkExportCsv = () => {
+    const selected = filteredOrders.filter((o) => selectedOrderIds.has(o.id));
+    if (!selected.length) return;
+    const rows = [
+      ['Order Reference', 'Order Date', 'Customer', 'Phone', 'Address', 'PIN Code', 'Items', 'Delivery', 'Total'],
+      ...selected.map((order) => [
+        order.order_number || order.id.slice(0, 8).toUpperCase(),
+        new Date(order.created_at).toLocaleString('en-IN'),
+        order.customer_name,
+        order.phone,
+        order.address,
+        order.pin_code || '',
+        order.items.map((it) => `${it.name}: ${it.quantity}`).join('; '),
+        order.preferred_delivery_date || 'ASAP',
+        order.total,
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `chittoor-farms-selected-${selected.length}-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkPrintDispatch = () => {
+    const selected = filteredOrders.filter((o) => selectedOrderIds.has(o.id));
+    if (!selected.length) return;
+    const dateLabel = new Date().toLocaleDateString('en-IN');
+    const rows = selected.map((order, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${esc(order.order_number || order.id.slice(0, 8).toUpperCase())}</strong></td>
+        <td><strong>${esc(order.customer_name)}</strong><br><span style="font-size:0.78rem;color:#6b7280">${esc(order.phone)}</span></td>
+        <td style="font-size:0.8rem">${esc(order.address)}${order.pin_code ? ` (${esc(order.pin_code)})` : ''}</td>
+        <td>${order.items.map((it) => `${esc(it.name)} × ${it.quantity}${esc(it.unit.replace(/^1\s*/, ''))}`).join('<br>')}</td>
+        <td><strong>${esc(order.preferred_delivery_date || 'ASAP')}</strong></td>
+        <td style="font-weight:700">₹${esc(order.total)}</td>
+        <td style="width:60px"></td>
+      </tr>`).join('');
+    const body = `
+      ${logoRow(`Dispatch Sheet (${selected.length} selected)`, dateLabel)}
+      <p style="margin-bottom:10px;color:#374151">Selected orders: <strong>${selected.length}</strong> &nbsp;|&nbsp; Total value: <strong>₹${selected.reduce((s, o) => s + Number(o.total), 0).toLocaleString('en-IN')}</strong></p>
+      <table>
+        <thead><tr><th>#</th><th>Order</th><th>Customer</th><th>Address</th><th>Items</th><th>Delivery</th><th>Total</th><th>✓ Done</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${footer()}`;
+    openPrint(wrapHtml('Dispatch Sheet', body));
+  };
+
   // ── Shared filter toolbar ─────────────────────────────────────────────────
   const FilterToolbar = () => (
     <div className="orders-toolbar">
@@ -707,6 +807,19 @@ export const Orders: React.FC = () => {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    {activeTab === 'pending' && (
+                      <th style={{ width: '2.5rem', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                          onChange={toggleSelectAll}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                          title={allSelected ? 'Deselect all' : 'Select all pending orders'}
+                          aria-label="Select all pending orders"
+                        />
+                      </th>
+                    )}
                     <th>Order Reference</th>
                     <th>Order Date</th>
                     <th>Customer Details</th>
@@ -720,8 +833,21 @@ export const Orders: React.FC = () => {
                   {filteredOrders.map((order) => {
                     const hasDiscount = order.discount_amount && Number(order.discount_amount) > 0;
                     const codeLabel = order.referral_code || order.promo_code;
+                    const isSelected = selectedOrderIds.has(order.id);
                     return (
-                      <tr key={order.id}>
+                      <tr key={order.id} style={isSelected ? { background: 'rgba(23,99,63,0.06)' } : undefined}>
+                        {activeTab === 'pending' && (
+                          <td style={{ textAlign: 'center', width: '2.5rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectOrder(order.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                              aria-label={`Select order ${order.order_number || order.id}`}
+                            />
+                          </td>
+                        )}
                         <td style={{ fontWeight: 700, color: 'var(--secondary)', whiteSpace: 'nowrap' }}>
                           {order.order_number || order.id.slice(0, 8).toUpperCase()}
                         </td>
@@ -1141,6 +1267,65 @@ export const Orders: React.FC = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Bulk action floating bar — appears when orders are selected */}
+      {selectedOrderIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: '1.75rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#1a1a1a', color: '#fff', borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 9000,
+          border: '1px solid rgba(255,255,255,0.12)', whiteSpace: 'nowrap',
+          flexWrap: 'wrap', maxWidth: '90vw',
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#a3e6b5' }}>
+            {selectedOrderIds.size} order{selectedOrderIds.size > 1 ? 's' : ''} selected
+          </span>
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+          <button
+            onClick={handleBulkFulfill}
+            disabled={bulkFulfilling}
+            style={{
+              background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px',
+              padding: '0.45rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+              display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: bulkFulfilling ? 0.6 : 1,
+            }}
+          >
+            <Check size={15} />{bulkFulfilling ? 'Fulfilling...' : 'Bulk Fulfill (COD)'}
+          </button>
+          <button
+            onClick={handleBulkExportCsv}
+            style={{
+              background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px', padding: '0.45rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+            }}
+          >
+            <Download size={15} /> Export Selected
+          </button>
+          <button
+            onClick={handleBulkPrintDispatch}
+            style={{
+              background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px', padding: '0.45rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+            }}
+          >
+            <Printer size={15} /> Print Dispatch
+          </button>
+          <button
+            onClick={() => setSelectedOrderIds(new Set())}
+            style={{
+              background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none',
+              borderRadius: '6px', padding: '0.35rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', marginLeft: '0.25rem',
+            }}
+            title="Clear selection"
+            aria-label="Clear selection"
+          ><X size={16} /></button>
         </div>
       )}
 
