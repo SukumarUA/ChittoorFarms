@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Megaphone, PlusCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Megaphone, PlusCircle, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
 
 const farmerImageFallback = '/CTRFLOGO.jpeg';
 const useFarmerImageFallback = (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -305,14 +306,49 @@ export const FarmsManager: React.FC = () => {
     }
   };
 
+  const printFarmDirectory = () => {
+    const active = farms.filter((f) => f.active);
+    if (!active.length) return;
+    const rows = active.map((f, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>
+          <strong>${esc(f.farm_name)}</strong><br>
+          <span style="font-size:0.78rem;color:#6b7280">${esc(f.farmer_name)}</span>
+        </td>
+        <td>${esc(f.phone)}</td>
+        <td style="font-size:0.82rem">
+          ${[f.village, f.mandal, f.district].filter(Boolean).map(esc).join(', ') || esc(f.location)}
+          ${f.pincode ? `<br><span style="color:#9ca3af">PIN: ${esc(f.pincode)}</span>` : ''}
+        </td>
+        <td style="font-size:0.82rem">${esc(f.varieties)}</td>
+        <td>${esc(f.acres)} acres</td>
+        <td style="font-size:0.78rem">${esc(f.farm_type || '—')}</td>
+      </tr>`).join('');
+    const body = `
+      ${logoRow('Partner Farm Directory', `${active.length} active farms · ${new Date().toLocaleDateString('en-IN')}`)}
+      <table>
+        <thead><tr><th>#</th><th>Farm / Farmer</th><th>Phone</th><th>Location</th><th>Varieties</th><th>Acres</th><th>Type</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${footer()}`;
+    openPrint(wrapHtml('Farm Directory', body));
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2>Manage Partner Farms</h2>
-        <button className="btn btn-secondary" style={{ display: 'flex', gap: '0.25rem' }} onClick={handleOpenAdd}>
-          <Plus size={16} />
-          <span>Add Farm</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline" style={{ display: 'flex', gap: '0.25rem' }} onClick={printFarmDirectory} disabled={farms.filter((f) => f.active).length === 0} title="Print farm contact directory">
+            <Printer size={16} />
+            <span>Farm Directory</span>
+          </button>
+          <button className="btn btn-secondary" style={{ display: 'flex', gap: '0.25rem' }} onClick={handleOpenAdd}>
+            <Plus size={16} />
+            <span>Add Farm</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, Calendar, Check, X, RotateCcw } from 'lucide-react';
+import { Phone, Calendar, Check, X, RotateCcw, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
 
 interface Visit {
   id: string;
@@ -98,13 +99,81 @@ export const VisitsManager: React.FC = () => {
     });
   };
 
+  const printConfirmation = (visit: Visit) => {
+    const body = `
+      ${logoRow('Visit Confirmation', `#${esc(visit.id.slice(0, 8).toUpperCase())}`)}
+      <p style="margin-bottom:14px;color:#15803d;font-weight:600;font-size:1rem">✓ Your farm visit has been confirmed!</p>
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="lbl">Visitor</div>
+          <div class="val">${esc(visit.name)}</div>
+          <div class="sub">📞 ${esc(visit.phone)}</div>
+        </div>
+        <div class="info-box">
+          <div class="lbl">Visit Details</div>
+          <div class="val">${esc(visit.preferred_date ? formatDate(visit.preferred_date) : 'Date to be confirmed')}</div>
+          <div class="sub">Farm: ${esc(visit.preferred_farm || 'Any Chittoor Farm')}</div>
+          <div class="sub">Group: ${esc(visit.group_size || 'Not specified')}</div>
+        </div>
+      </div>
+      ${visit.purpose ? `<div class="info-box" style="margin-top:10px"><div class="lbl">Purpose</div><div class="val">${esc(visit.purpose)}</div></div>` : ''}
+      ${visit.message ? `<div class="info-box" style="margin-top:10px"><div class="lbl">Notes</div><div class="val" style="font-weight:400;font-style:italic">${esc(visit.message)}</div></div>` : ''}
+      <p style="margin-top:20px;font-size:0.82rem;color:#374151">Please carry this slip on arrival. Contact us at chittoorfarms.in if you need to reschedule.</p>
+      <div class="sig-block">
+        <div class="sig-line"><div class="line"></div><div class="label">Farm Coordinator Sign</div></div>
+        <div class="sig-line"><div class="line"></div><div class="label">Date &amp; Time of Arrival</div></div>
+      </div>
+      ${footer()}`;
+    openPrint(wrapHtml(`Visit Confirmation – ${visit.name}`, body));
+  };
+
+  const printDailySchedule = () => {
+    const confirmed = visits.filter((v) => v.status === 'confirmed').sort((a, b) => {
+      const da = a.preferred_date || '9999';
+      const db = b.preferred_date || '9999';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    if (!confirmed.length) return;
+    const rows = confirmed.map((v, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${esc(v.preferred_date ? formatDate(v.preferred_date) : 'TBD')}</td>
+        <td><strong>${esc(v.name)}</strong></td>
+        <td>${esc(v.phone)}</td>
+        <td>${esc(v.preferred_farm || 'Any')}</td>
+        <td>${esc(v.group_size || '—')}</td>
+        <td style="font-size:0.78rem">${esc(v.purpose || '—')}</td>
+        <td style="width:60px"></td>
+      </tr>`).join('');
+    const body = `
+      ${logoRow('Visitor Schedule', new Date().toLocaleDateString('en-IN'))}
+      <p style="margin-bottom:10px;color:#374151">Confirmed visits: <strong>${confirmed.length}</strong></p>
+      <table>
+        <thead><tr><th>#</th><th>Date</th><th>Visitor</th><th>Phone</th><th>Farm</th><th>Group</th><th>Purpose</th><th>✓</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${footer()}`;
+    openPrint(wrapHtml('Visitor Schedule', body));
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2>Manage Farm Visit Bookings</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Review tourist and media visit requests submitted from the About page.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h2>Manage Farm Visit Bookings</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Review tourist and media visit requests submitted from the About page.
+          </p>
+        </div>
+        <button
+          className="btn btn-outline"
+          style={{ display: 'flex', gap: '0.4rem' }}
+          onClick={printDailySchedule}
+          disabled={visits.filter((v) => v.status === 'confirmed').length === 0}
+          title="Print confirmed visitor schedule"
+        >
+          <Printer size={16} /> Visitor Schedule
+        </button>
       </div>
 
       {loading ? (
@@ -198,6 +267,17 @@ export const VisitsManager: React.FC = () => {
                             <span>Cancel</span>
                           </button>
                         </>
+                      )}
+
+                      {visit.status === 'confirmed' && (
+                        <button
+                          className="btn-icon"
+                          onClick={() => printConfirmation(visit)}
+                          title="Print booking confirmation slip"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          <Printer size={15} />
+                        </button>
                       )}
 
                       {visit.status !== 'pending' && (

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, ToggleLeft, ToggleRight, Tag } from 'lucide-react';
+import { Plus, ToggleLeft, ToggleRight, Tag, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoUrl, wrapHtml, openPrint, PRINT_CSS } from '../../lib/printUtils';
 
 interface ReferralCode {
   id: string;
@@ -58,6 +59,33 @@ export const AdminReferrals: React.FC = () => {
     }
   };
 
+  const printReferralCards = () => {
+    const active = codes.filter((c) => c.is_active);
+    if (!active.length) return;
+    const cards = active.map((c) => `
+      <div class="ref-card">
+        <div class="card-logo">
+          <img src="${logoUrl()}" alt="Chittoor Farms" />
+          <span>Chittoor Farms</span>
+        </div>
+        <div class="code">${esc(c.code)}</div>
+        <div class="discount">🎉 ${c.discount_pct}% OFF your order</div>
+        <div class="url">Use at: <strong>chittoorfarms.in</strong></div>
+        ${c.description ? `<div class="desc">${esc(c.description)}</div>` : ''}
+      </div>`).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Referral Code Cards</title>
+      <style>${PRINT_CSS}</style></head>
+      <body><div class="page">
+        <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #17633f">
+          <h1 style="color:#17633f">Chittoor Farms – Referral Code Cards</h1>
+          <p style="color:#6b7280;font-size:0.82rem">Print and cut · ${active.length} active code${active.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString('en-IN')}</p>
+        </div>
+        <div class="cards-grid">${cards}</div>
+      </div>
+      <script>window.onload=()=>{window.print();};<\/script></body></html>`;
+    openPrint(html);
+  };
+
   const toggleActive = async (id: string, current: boolean) => {
     const { error } = await supabase.from('referral_codes').update({ is_active: !current }).eq('id', id);
     if (error) { showToast('Failed to update', 'error'); }
@@ -73,9 +101,14 @@ export const AdminReferrals: React.FC = () => {
             Create and manage referral codes. Each use is tracked below.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Plus size={16} /> New Code
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline" onClick={printReferralCards} disabled={codes.filter((c) => c.is_active).length === 0} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} title="Print cards for all active referral codes">
+            <Printer size={16} /> Print Cards
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Plus size={16} /> New Code
+          </button>
+        </div>
       </div>
 
       {showForm && (

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, Package, Phone, RotateCcw, Search, ShieldAlert, Trash2, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
 
 interface OrderItem {
   product_id: string;
@@ -419,6 +420,114 @@ export const Orders: React.FC = () => {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
   };
 
+  // ── Print: Delivery Challan ──────────────────────────────────────────────
+  const printChallan = (order: Order) => {
+    const ref = order.order_number || order.id.slice(0, 8).toUpperCase();
+    const body = `
+      ${logoRow('Delivery Challan', `Order: ${ref}`)}
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="lbl">Deliver To</div>
+          <div class="val">${esc(order.customer_name)}</div>
+          <div class="sub">${esc(order.address)}${order.pin_code ? ` — PIN ${esc(order.pin_code)}` : ''}</div>
+          <div class="sub" style="margin-top:4px">📞 ${esc(order.phone)}</div>
+        </div>
+        <div class="info-box">
+          <div class="lbl">Order Details</div>
+          <div class="val">${esc(ref)}</div>
+          <div class="sub">Placed: ${esc(formatDateTime(order.created_at))}</div>
+          <div class="sub">Delivery: <strong>${esc(order.preferred_delivery_date || 'ASAP')}</strong></div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${order.items.map((item, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${esc(item.name)}</td>
+              <td><strong>${item.quantity} ${esc(item.unit.replace(/^1\s*/, ''))}</strong></td>
+              <td>₹${esc(item.price)}</td>
+              <td>₹${(item.quantity * item.price).toFixed(2)}</td>
+            </tr>`).join('')}
+          <tr class="total-row"><td colspan="4" style="text-align:right">Total</td><td>₹${esc(order.total)}</td></tr>
+        </tbody>
+      </table>
+      ${order.special_instructions ? `<p style="margin-top:10px;font-size:0.82rem;color:#374151"><em>Instructions: ${esc(order.special_instructions)}</em></p>` : ''}
+      <div class="sig-block">
+        <div class="sig-line"><div class="line"></div><div class="label">Delivered by (Name & Sign)</div></div>
+        <div class="sig-line"><div class="line"></div><div class="label">Received by (Customer Sign)</div></div>
+        <div class="sig-line"><div class="line"></div><div class="label">Date of Delivery</div></div>
+      </div>
+      ${footer()}`;
+    openPrint(wrapHtml(`Challan – ${ref}`, body));
+  };
+
+  // ── Print: Customer Receipt ───────────────────────────────────────────────
+  const printReceipt = (order: Order) => {
+    const ref = order.order_number || order.id.slice(0, 8).toUpperCase();
+    const body = `
+      ${logoRow('Payment Receipt', ref)}
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="lbl">Customer</div>
+          <div class="val">${esc(order.customer_name)}</div>
+          <div class="sub">${esc(order.phone)}</div>
+          <div class="sub">${esc(order.address)}</div>
+        </div>
+        <div class="info-box">
+          <div class="lbl">Payment Details</div>
+          <div class="val">₹${esc(order.payment_amount ?? order.total)}</div>
+          <div class="sub">Mode: ${esc(order.payment_mode || '—')}</div>
+          ${order.payment_reference ? `<div class="sub">Ref: ${esc(order.payment_reference)}</div>` : ''}
+          <div class="sub">Date: ${esc(order.payment_recorded_at ? formatDateTime(order.payment_recorded_at) : formatDateTime(order.created_at))}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${order.items.map((item) => `
+            <tr>
+              <td>${esc(item.name)}</td>
+              <td>${item.quantity} ${esc(item.unit.replace(/^1\s*/, ''))}</td>
+              <td>₹${esc(item.price)}</td>
+              <td>₹${(item.quantity * item.price).toFixed(2)}</td>
+            </tr>`).join('')}
+          <tr class="total-row"><td colspan="3" style="text-align:right">Total Paid</td><td>₹${esc(order.payment_amount ?? order.total)}</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:14px;color:#15803d;font-weight:600">✓ Payment Received. Thank you for your order!</p>
+      ${footer()}`;
+    openPrint(wrapHtml(`Receipt – ${ref}`, body));
+  };
+
+  // ── Print: Daily Dispatch Sheet ───────────────────────────────────────────
+  const printDispatchSheet = () => {
+    const pending = baseFilteredOrders.filter((o) => o.status === 'pending');
+    if (!pending.length) return;
+    const dateLabel = dateFrom === dateTo && dateFrom ? dateFrom : (dateFrom || dateTo ? `${dateFrom || ''}–${dateTo || ''}` : new Date().toLocaleDateString('en-IN'));
+    const rows = pending.map((order, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${esc(order.order_number || order.id.slice(0, 8).toUpperCase())}</strong></td>
+        <td><strong>${esc(order.customer_name)}</strong><br><span style="font-size:0.78rem;color:#6b7280">${esc(order.phone)}</span></td>
+        <td style="font-size:0.8rem">${esc(order.address)}${order.pin_code ? ` (${esc(order.pin_code)})` : ''}</td>
+        <td>${order.items.map((it) => `${esc(it.name)} × ${it.quantity}${esc(it.unit.replace(/^1\s*/, ''))}`).join('<br>')}</td>
+        <td><strong>${esc(order.preferred_delivery_date || 'ASAP')}</strong></td>
+        <td style="font-weight:700">₹${esc(order.total)}</td>
+        <td style="width:60px"></td>
+      </tr>`).join('');
+    const body = `
+      ${logoRow('Dispatch Sheet', dateLabel)}
+      <p style="margin-bottom:10px;color:#374151">Pending deliveries: <strong>${pending.length}</strong> &nbsp;|&nbsp; Total value: <strong>₹${pending.reduce((s, o) => s + Number(o.total), 0).toLocaleString('en-IN')}</strong></p>
+      <table>
+        <thead><tr><th>#</th><th>Order</th><th>Customer</th><th>Address</th><th>Items</th><th>Delivery</th><th>Total</th><th>✓ Done</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${footer()}`;
+    openPrint(wrapHtml('Dispatch Sheet', body));
+  };
+
   return (
     <div>
       {/* View Mode Toggle */}
@@ -464,6 +573,7 @@ export const Orders: React.FC = () => {
               </button>
             </div>
             <div className="orders-export-actions">
+              <button type="button" className="btn btn-outline" onClick={printDispatchSheet} disabled={!baseFilteredOrders.filter((o) => o.status === 'pending').length} title="Print dispatch sheet for all pending orders"><Printer size={16} /> Dispatch Sheet</button>
               <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!filteredOrders.length}><FileText size={16} /> Export PDF</button>
               <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filteredOrders.length}><Download size={16} /> Export CSV</button>
             </div>
@@ -608,13 +718,29 @@ export const Orders: React.FC = () => {
                               >
                                 <X size={18} />
                               </button>
+                              <button
+                                className="btn-icon"
+                                onClick={() => printChallan(order)}
+                                title="Print Delivery Challan"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                <Printer size={16} />
+                              </button>
                             </>
                           )}
 
                           {order.status === 'fulfilled' && (
-                            <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>
-                              ✓ Fulfilled
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>✓ Fulfilled</span>
+                              <button
+                                className="btn-icon"
+                                onClick={() => printReceipt(order)}
+                                title="Print Customer Receipt"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                <Printer size={15} />
+                              </button>
+                            </div>
                           )}
 
                           {order.status === 'failed' && (

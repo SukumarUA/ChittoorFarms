@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, Upload, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
 
 interface Product {
   id: string;
@@ -240,14 +241,44 @@ export const Products: React.FC = () => {
     }
   };
 
+  const printPriceList = () => {
+    const active = products.filter((p) => p.active).sort((a, b) => a.sort_order - b.sort_order);
+    const categories = [...new Set(active.map((p) => p.category))];
+    const sections = categories.map((cat) => {
+      const items = active.filter((p) => p.category === cat);
+      const rows = items.map((p) => `
+        <tr>
+          <td><strong>${esc(p.name)}</strong>${p.description ? `<br><span style="font-size:0.78rem;color:#6b7280">${esc(p.description)}</span>` : ''}</td>
+          <td>${esc(p.use ?? '—')}</td>
+          <td style="font-weight:700;color:#17633f">₹${esc(p.price)} / ${esc(p.unit)}</td>
+          <td>${p.stock > 0 ? `<span style="color:#15803d;font-weight:600">${p.stock} ${esc(p.unit.replace(/^1\s*/, ''))} in stock</span>` : '<span style="color:#dc2626">Out of stock</span>'}</td>
+        </tr>`).join('');
+      return `<h2>${esc(cat)}</h2>
+        <table><thead><tr><th>Product</th><th>Use</th><th>Price</th><th>Availability</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }).join('');
+    const body = `
+      ${logoRow('Product Price List', `Updated ${new Date().toLocaleDateString('en-IN')}`)}
+      ${sections}
+      <p style="margin-top:14px;font-size:0.78rem;color:#9ca3af">Prices are subject to change. Contact us at chittoorfarms.in for bulk enquiries.</p>
+      ${footer()}`;
+    openPrint(wrapHtml('Chittoor Farms – Price List', body));
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2>Manage Shop Products</h2>
-        <button className="btn btn-secondary" style={{ display: 'flex', gap: '0.25rem' }} onClick={handleOpenAdd}>
-          <Plus size={16} />
-          <span>Add Product</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline" style={{ display: 'flex', gap: '0.25rem' }} onClick={printPriceList} disabled={products.filter((p) => p.active).length === 0} title="Print price list of active products">
+            <Printer size={16} />
+            <span>Price List</span>
+          </button>
+          <button className="btn btn-secondary" style={{ display: 'flex', gap: '0.25rem' }} onClick={handleOpenAdd}>
+            <Plus size={16} />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
