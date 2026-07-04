@@ -125,7 +125,7 @@ export const AdminLayout: React.FC = () => {
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <div className="admin-sidebar-logo">
-            <Sprout className="logo-icon" style={{ color: 'var(--primary)' }} />
+            <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms" className="logo-icon" style={{ objectFit: 'cover', padding: 0 }} />
             <span className="admin-sidebar-label">CF Admin Panel</span>
           </div>
           <button type="button" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={isSidebarCollapsed ? 'Expand admin navigation' : 'Collapse admin navigation'} title={isSidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}>

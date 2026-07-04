@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
     <div className="admin-login-container">
       <div className="admin-login-card">
         <div className="admin-login-logo">
-          <Sprout size={48} className="logo-icon" style={{ margin: '0 auto 0.5rem auto' }} />
+          <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms" className="logo-icon" style={{ objectFit: 'cover', padding: 0, width: 64, height: 64, margin: '0 auto 0.5rem auto' }} />
           <h2>Chittoor Farms</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Admin Panel Portal</p>
         </div>
