@@ -9,7 +9,6 @@ import {
   Home,
   LogOut,
   ChevronRight,
-  Sprout,
   PanelsTopLeft,
   CreditCard,
   ChevronLeft,
