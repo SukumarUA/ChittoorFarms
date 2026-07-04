@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, ToggleLeft, ToggleRight, Tag, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
-import { esc, logoUrl, wrapHtml, openPrint, PRINT_CSS } from '../../lib/printUtils';
+import { esc, logoUrl, openPrint, PRINT_CSS } from '../../lib/printUtils';
 
 interface ReferralCode {
   id: string;
