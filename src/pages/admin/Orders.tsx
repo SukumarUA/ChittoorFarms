@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Tag, Trash2, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, MessageSquare, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Tag, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
@@ -84,6 +84,25 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'var(--danger)',
 };
 
+// Color-coded age badge for pending order rows
+const ageBadge = (createdAt: string): { label: string; color: string; bg: string } => {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const label = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  if (h >= 6) return { label, color: '#dc2626', bg: '#fee2e2' };
+  if (h >= 2) return { label, color: '#92400e', bg: '#fef3c7' };
+  return { label, color: '#166534', bg: '#dcfce7' };
+};
+
+// Pre-filled WhatsApp message for a pending order
+const waMessage = (order: Order) => {
+  const ref = order.order_number || order.id.slice(0, 8).toUpperCase();
+  const itemLines = order.items.map((it) => `• ${it.name} × ${it.quantity}${it.unit.replace(/^1\s*/, '')}`).join('\n');
+  const delivery = order.preferred_delivery_date || 'ASAP';
+  return `Hello ${order.customer_name}! 🌿\n\nYour Chittoor Farms order *${ref}* is confirmed.\n\nItems:\n${itemLines}\n\nTotal: ₹${order.total}\nDelivery: ${delivery}\n\nThank you for supporting local farms! 🍃`;
+};
+
 export const Orders: React.FC = () => {
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -106,6 +125,13 @@ export const Orders: React.FC = () => {
 
   // Modal states for deletion
   const [deleteTargetOrder, setDeleteTargetOrder] = useState<Order | null>(null);
+
+  // Tick every 60s so aging badges stay fresh without reload
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -162,11 +188,14 @@ export const Orders: React.FC = () => {
       && (!dateTo || orderDate <= dateTo);
   }), [orders, normalizedSearch, dateFrom, dateTo]);
 
-  // "By Order" view: add status tab filter
-  const filteredOrders = useMemo(
-    () => baseFilteredOrders.filter((order) => order.status === activeTab),
-    [baseFilteredOrders, activeTab],
-  );
+  // "By Order" view: status tab filter + sort pending oldest-first (most urgent at top)
+  const filteredOrders = useMemo(() => {
+    const list = baseFilteredOrders.filter((order) => order.status === activeTab);
+    if (activeTab === 'pending') {
+      return [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+    return list;
+  }, [baseFilteredOrders, activeTab]);
 
   // "By Product" view: aggregate across all statuses
   const productSummaries = useMemo((): ProductSummary[] => {
@@ -697,7 +726,21 @@ export const Orders: React.FC = () => {
                           {order.order_number || order.id.slice(0, 8).toUpperCase()}
                         </td>
 
-                        <td>{formatDateTime(order.created_at)}</td>
+                        <td>
+                          <div>{formatDateTime(order.created_at)}</div>
+                          {order.status === 'pending' && (() => {
+                            const age = ageBadge(order.created_at);
+                            return (
+                              <span style={{
+                                display: 'inline-block', marginTop: '0.3rem',
+                                padding: '0.1rem 0.5rem', borderRadius: '999px',
+                                fontSize: '0.72rem', fontWeight: 700,
+                                border: `1px solid ${age.color}`,
+                                color: age.color, background: age.bg,
+                              }}>{age.label} old</span>
+                            );
+                          })()}
+                        </td>
 
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
@@ -774,6 +817,15 @@ export const Orders: React.FC = () => {
                                 <button className="order-action-icon accept" onClick={() => handleOpenFulfil(order)} title="Accept order and record payment" aria-label={`Accept order ${order.order_number || order.id}`}><Check size={18} /></button>
                                 <button className="order-action-icon reject" onClick={() => handleMarkFailed(order.id)} title="Reject order" aria-label={`Reject order ${order.order_number || order.id}`}><X size={18} /></button>
                                 <button className="btn-icon" onClick={() => printChallan(order)} title="Print Delivery Challan" style={{ color: 'var(--text-muted)' }}><Printer size={16} /></button>
+                                <a
+                                  href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(order))}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-icon"
+                                  title="Send WhatsApp confirmation"
+                                  style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                  aria-label={`WhatsApp ${order.customer_name}`}
+                                ><MessageSquare size={16} /></a>
                               </>
                             )}
                             {order.status === 'fulfilled' && (
