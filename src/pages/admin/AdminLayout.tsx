@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Share2,
   Percent,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -87,6 +88,7 @@ export const AdminLayout: React.FC = () => {
     '/admin/cms': 'CMS',
     '/admin/referrals': 'Referrals',
     '/admin/promos': 'Promos',
+    '/admin/customers': 'Customers',
   };
   const activeSection = sectionTitles[location.pathname] || 'Admin Workspace';
 
@@ -191,6 +193,12 @@ export const AdminLayout: React.FC = () => {
             <NavLink to="/admin/promos" title={isSidebarCollapsed ? 'Promos' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
               <Percent size={18} />
               <span className="admin-sidebar-label">Promos</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/customers" title={isSidebarCollapsed ? 'Customers' : undefined} className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}>
+              <Users size={18} />
+              <span className="admin-sidebar-label">Customers</span>
             </NavLink>
           </li>
         </ul>

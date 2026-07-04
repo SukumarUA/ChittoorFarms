@@ -34,6 +34,7 @@ const CMS            = lazy(() => import('./pages/admin/CMS').then(m => ({ defau
 const Payments       = lazy(() => import('./pages/admin/Payments').then(m => ({ default: m.Payments })));
 const AdminReferrals = lazy(() => import('./pages/admin/AdminReferrals').then(m => ({ default: m.AdminReferrals })));
 const AdminPromos    = lazy(() => import('./pages/admin/AdminPromos').then(m => ({ default: m.AdminPromos })));
+const Customers      = lazy(() => import('./pages/admin/Customers').then(m => ({ default: m.Customers })));
 
 // Public Layout Wrapper
 const PublicLayout: React.FC = () => {
@@ -80,6 +81,7 @@ const App: React.FC = () => {
                 <Route path="cms" element={<Suspense fallback={null}><CMS /></Suspense>} />
                 <Route path="referrals" element={<Suspense fallback={null}><AdminReferrals /></Suspense>} />
                 <Route path="promos" element={<Suspense fallback={null}><AdminPromos /></Suspense>} />
+                <Route path="customers" element={<Suspense fallback={null}><Customers /></Suspense>} />
               </Route>
 
               {/* 404 */}
