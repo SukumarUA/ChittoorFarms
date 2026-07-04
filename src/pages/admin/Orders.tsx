@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+
+const PAGE_SIZE = 50;
 import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, MessageSquare, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Tag, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
@@ -137,6 +139,13 @@ export const Orders: React.FC = () => {
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
   const [bulkFulfilling, setBulkFulfilling] = useState(false);
 
+  // Server-side pagination (By Order view)
+  const [orderPage, setOrderPage] = useState(0);
+  const [orderPageCount, setOrderPageCount] = useState(0);   // total records matching current filter
+  const [pagedOrders, setPagedOrders] = useState<Order[]>([]);
+  const [pagedLoading, setPagedLoading] = useState(false);
+  const [tabCounts, setTabCounts] = useState<Record<string, number>>({ pending: 0, fulfilled: 0, failed: 0 });
+
   // Clear selection whenever the status tab changes
   useEffect(() => { setSelectedOrderIds(new Set()); }, [activeTab]);
 
@@ -158,22 +167,98 @@ export const Orders: React.FC = () => {
     }
   }, [showToast]);
 
-  useEffect(() => {
-    void Promise.resolve().then(fetchOrders);
+  // Server-side paginated fetch for By Order view
+  const fetchPagedOrders = useCallback(async () => {
+    setPagedLoading(true);
+    try {
+      const offset = orderPage * PAGE_SIZE;
+      const term = searchTerm.trim();
 
+      // Build server-side query with status, search, and date filters
+      let q = supabase.from('orders')
+        .select('*', { count: 'exact' })
+        .eq('status', activeTab)
+        .order('created_at', { ascending: activeTab === 'pending' }); // oldest-first for pending
+
+      if (term) {
+        // Search across indexed string columns (items need By Product view for product-name search)
+        q = q.or([
+          `customer_name.ilike.%${term}%`,
+          `phone.ilike.%${term}%`,
+          `order_number.ilike.%${term}%`,
+          `referral_code.ilike.%${term}%`,
+          `promo_code.ilike.%${term}%`,
+        ].join(','));
+      }
+      if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00`);
+      if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59`);
+      q = q.range(offset, offset + PAGE_SIZE - 1);
+
+      const { data, count, error } = await q;
+      if (error) throw error;
+      setPagedOrders((data as Order[]) ?? []);
+      setOrderPageCount(count ?? 0);
+    } catch (err) {
+      console.error('Error fetching orders page:', err);
+      showToast('Could not load orders.', 'error');
+    } finally {
+      setPagedLoading(false);
+    }
+  }, [activeTab, orderPage, searchTerm, dateFrom, dateTo, showToast]);
+
+  // Fetch all three tab counts (for the tab badge numbers)
+  const fetchTabCounts = useCallback(async () => {
+    const term = searchTerm.trim();
+    const makeQ = (status: string) => {
+      let q = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', status);
+      if (term) q = q.or(`customer_name.ilike.%${term}%,phone.ilike.%${term}%,order_number.ilike.%${term}%`);
+      if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00`);
+      if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59`);
+      return q;
+    };
+    const [p, f, fail] = await Promise.all([makeQ('pending'), makeQ('fulfilled'), makeQ('failed')]);
+    setTabCounts({ pending: p.count ?? 0, fulfilled: f.count ?? 0, failed: fail.count ?? 0 });
+  }, [searchTerm, dateFrom, dateTo]);
+
+  // Always-current reference to the active fetch function
+  // (avoids recreating the subscription when fetchPagedOrders ref changes)
+  const activeFetchRef = useRef<() => void>(() => void 0);
+  activeFetchRef.current = () => {
+    if (viewMode === 'by-order') void fetchPagedOrders();
+    else void fetchOrders();
+  };
+
+  // Real-time subscription — created once, always uses latest fetch
+  useEffect(() => {
     const subscription = supabase
       .channel('orders-db-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => { fetchOrders(); }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => activeFetchRef.current())
       .subscribe((_status, err) => {
         if (err) console.error('Orders real-time subscription error:', err);
       });
+    return () => { void subscription.unsubscribe(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return () => { subscription.unsubscribe(); };
-  }, [fetchOrders]);
+  // Fetch paged data whenever By Order filters or page change
+  useEffect(() => {
+    if (viewMode !== 'by-order') return;
+    void fetchPagedOrders();
+  }, [viewMode, fetchPagedOrders]);
+
+  // Fetch full orders data for By Product / By Referral views
+  useEffect(() => {
+    if (viewMode === 'by-order') return;
+    void fetchOrders();
+  }, [viewMode, fetchOrders]);
+
+  // Fetch tab counts when entering By Order view or when filters change
+  useEffect(() => {
+    if (viewMode !== 'by-order') return;
+    void fetchTabCounts();
+  }, [viewMode, fetchTabCounts]);
+
+  // Reset to page 0 when tab or filters change
+  useEffect(() => { setOrderPage(0); }, [activeTab, searchTerm, dateFrom, dateTo]);
 
   // Shared search/date filter — includes referral/promo code search
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -195,14 +280,8 @@ export const Orders: React.FC = () => {
       && (!dateTo || orderDate <= dateTo);
   }), [orders, normalizedSearch, dateFrom, dateTo]);
 
-  // "By Order" view: status tab filter + sort pending oldest-first (most urgent at top)
-  const filteredOrders = useMemo(() => {
-    const list = baseFilteredOrders.filter((order) => order.status === activeTab);
-    if (activeTab === 'pending') {
-      return [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    }
-    return list;
-  }, [baseFilteredOrders, activeTab]);
+  // filteredOrders removed — By Order view now uses server-side pagedOrders
+  // By Product and By Referral continue to use baseFilteredOrders (full client-side data)
 
   // "By Product" view: aggregate across all statuses
   const productSummaries = useMemo((): ProductSummary[] => {
@@ -369,7 +448,7 @@ export const Orders: React.FC = () => {
       ['Generated At', generatedAt.toLocaleString('en-IN')],
       [],
       ['Order Reference', 'Order Date', 'Status', 'Customer', 'Phone', 'Address', 'PIN Code', 'Delivery Date', 'Items', 'Original Total', 'Discount', 'Net Total', 'Referral Code', 'Promo Code', 'Payment Mode', 'Paid Amount', 'Payment Reference', 'Instructions'],
-      ...filteredOrders.map((order) => [
+      ...pagedOrders.map((order) => [
         order.order_number || order.id.slice(0, 8).toUpperCase(),
         new Date(order.created_at).toLocaleString('en-IN'),
         order.status,
@@ -401,7 +480,7 @@ export const Orders: React.FC = () => {
 
   const exportPdf = () => {
     const logoUrl = `${window.location.origin}/CTRFLOGO.jpeg`;
-    const rows = filteredOrders.map((order) => `
+    const rows = pagedOrders.map((order) => `
       <tr>
         <td>${escapeHtml(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
         <td>${escapeHtml(formatDateTime(order.created_at))}</td>
@@ -433,8 +512,8 @@ export const Orders: React.FC = () => {
       <h1>Chittoor Farms Orders</h1>
       <p>${escapeHtml(activeTab.toUpperCase())} orders · Generated ${escapeHtml(new Date().toLocaleString('en-IN'))}</p>
       <div class="summary">
-        <span>Records: ${filteredOrders.length}</span>
-        <span>Total value: Rs.${filteredOrders.reduce((sum, o) => sum + Number(o.total), 0).toLocaleString('en-IN')}</span>
+        <span>Records: ${pagedOrders.length}${orderPageCount > PAGE_SIZE ? ` (page ${orderPage + 1} of ${Math.ceil(orderPageCount / PAGE_SIZE)})` : ''}</span>
+        <span>Total value: Rs.${pagedOrders.reduce((sum, o) => sum + Number(o.total), 0).toLocaleString('en-IN')}</span>
       </div>
       <table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Delivery</th><th>Total</th></tr></thead>
       <tbody>${rows}</tbody></table>
@@ -636,7 +715,7 @@ export const Orders: React.FC = () => {
   };
 
   // ── Bulk selection helpers ────────────────────────────────────────────────
-  const pendingFiltered = filteredOrders; // alias for clarity when pending tab active
+  const pendingFiltered = pagedOrders; // bulk ops target current visible page
   const allSelected = pendingFiltered.length > 0 && pendingFiltered.every((o) => selectedOrderIds.has(o.id));
   const someSelected = pendingFiltered.some((o) => selectedOrderIds.has(o.id)) && !allSelected;
 
@@ -677,7 +756,7 @@ export const Orders: React.FC = () => {
   };
 
   const handleBulkExportCsv = () => {
-    const selected = filteredOrders.filter((o) => selectedOrderIds.has(o.id));
+    const selected = pagedOrders.filter((o) => selectedOrderIds.has(o.id));
     if (!selected.length) return;
     const rows = [
       ['Order Reference', 'Order Date', 'Customer', 'Phone', 'Address', 'PIN Code', 'Items', 'Delivery', 'Total'],
@@ -703,7 +782,7 @@ export const Orders: React.FC = () => {
   };
 
   const handleBulkPrintDispatch = () => {
-    const selected = filteredOrders.filter((o) => selectedOrderIds.has(o.id));
+    const selected = pagedOrders.filter((o) => selectedOrderIds.has(o.id));
     if (!selected.length) return;
     const dateLabel = new Date().toLocaleDateString('en-IN');
     const rows = selected.map((order, i) => `
@@ -773,34 +852,35 @@ export const Orders: React.FC = () => {
           <div className="orders-header-row">
             <div className="tabs-header">
               <button className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>
-                Pending ({orders.filter((o) => o.status === 'pending').length})
+                Pending ({tabCounts.pending.toLocaleString('en-IN')})
               </button>
               <button className={`tab-btn ${activeTab === 'fulfilled' ? 'active' : ''}`} onClick={() => setActiveTab('fulfilled')}>
-                Fulfilled ({orders.filter((o) => o.status === 'fulfilled').length})
+                Fulfilled ({tabCounts.fulfilled.toLocaleString('en-IN')})
               </button>
               <button className={`tab-btn ${activeTab === 'failed' ? 'active' : ''}`} onClick={() => setActiveTab('failed')}>
-                Failed ({orders.filter((o) => o.status === 'failed').length})
+                Failed ({tabCounts.failed.toLocaleString('en-IN')})
               </button>
             </div>
             <div className="orders-export-actions">
               <button type="button" className="btn btn-outline" onClick={printDispatchSheet} disabled={!baseFilteredOrders.filter((o) => o.status === 'pending').length} title="Print dispatch sheet"><Printer size={16} /> Dispatch Sheet</button>
-              <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!filteredOrders.length}><FileText size={16} /> Export PDF</button>
-              <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filteredOrders.length}><Download size={16} /> Export CSV</button>
+              <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!pagedOrders.length}><FileText size={16} /> Export PDF</button>
+              <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!pagedOrders.length}><Download size={16} /> Export CSV</button>
             </div>
           </div>
 
           <FilterToolbar />
 
-          {(dateFrom || dateTo) && (
+          {(dateFrom || dateTo || searchTerm) && orderPageCount > 0 && (
             <p className="orders-filter-summary">
-              Showing {filteredOrders.length} {activeTab} order{filteredOrders.length === 1 ? '' : 's'}
-              {dateFrom ? ` from ${dateFrom}` : ''}{dateTo ? ` through ${dateTo}` : ''}. PDF and CSV exports contain only these records.
+              {orderPageCount.toLocaleString('en-IN')} {activeTab} order{orderPageCount === 1 ? '' : 's'} match the current filter
+              {dateFrom ? ` from ${dateFrom}` : ''}{dateTo ? ` through ${dateTo}` : ''}.
+              {orderPageCount > PAGE_SIZE ? ` Showing page ${orderPage + 1} of ${Math.ceil(orderPageCount / PAGE_SIZE)}.` : ''}
             </p>
           )}
 
-          {loading ? (
+          {pagedLoading ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>🔄 Loading orders...</div>
-          ) : filteredOrders.length === 0 ? (
+          ) : pagedOrders.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No orders listed under {activeTab.toUpperCase()}.</div>
           ) : (
             <div className="table-responsive">
@@ -830,7 +910,7 @@ export const Orders: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => {
+                  {pagedOrders.map((order) => {
                     const hasDiscount = order.discount_amount && Number(order.discount_amount) > 0;
                     const codeLabel = order.referral_code || order.promo_code;
                     const isSelected = selectedOrderIds.has(order.id);
@@ -979,6 +1059,37 @@ export const Orders: React.FC = () => {
               </table>
             </div>
           )}
+
+          {/* Pagination controls */}
+          {orderPageCount > PAGE_SIZE && (() => {
+            const totalPages = Math.ceil(orderPageCount / PAGE_SIZE);
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: '1rem', padding: '1rem 0', borderTop: '1px solid var(--border)',
+                marginTop: '0.5rem',
+              }}>
+                <button
+                  className="btn btn-outline"
+                  style={{ padding: '0.4rem 1.1rem' }}
+                  onClick={() => setOrderPage((p) => Math.max(0, p - 1))}
+                  disabled={orderPage === 0}
+                >← Prev</button>
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  Page <strong>{orderPage + 1}</strong> of <strong>{totalPages}</strong>
+                  <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>
+                    ({orderPageCount.toLocaleString('en-IN')} {activeTab} orders total)
+                  </span>
+                </span>
+                <button
+                  className="btn btn-outline"
+                  style={{ padding: '0.4rem 1.1rem' }}
+                  onClick={() => setOrderPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={orderPage >= totalPages - 1}
+                >Next →</button>
+              </div>
+            );
+          })()}
         </>
       )}
 
