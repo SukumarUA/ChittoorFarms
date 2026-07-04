@@ -1,7 +1,84 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, Clock, IndianRupee, Package, TrendingUp, UserCheck } from 'lucide-react';
+import { AlertTriangle, BarChart2, CalendarDays, Clock, IndianRupee, Package, TrendingUp, UserCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+// ── Inline SVG bar chart ──────────────────────────────────────────────────────
+interface BarDatum { label: string; value: number; sub?: string; }
+
+const MiniBarChart: React.FC<{
+  data: BarDatum[];
+  color: string;
+  formatValue?: (n: number) => string;
+  height?: number;
+}> = ({ data, color, formatValue = String, height = 110 }) => {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const totalBars = data.length;
+  // ViewBox: 500 wide, height + 26 for labels
+  const W = 500;
+  const H = height;
+  const PAD = 4;
+  const slotW = (W - PAD * 2) / totalBars;
+  const barW = Math.max(slotW * 0.6, 6);
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H + 26}`}
+      style={{ width: '100%', height: 'auto', display: 'block' }}
+      aria-label="Bar chart"
+    >
+      {/* grid lines */}
+      {[0.25, 0.5, 0.75, 1].map((pct) => (
+        <line
+          key={pct}
+          x1={PAD} y1={H - pct * H}
+          x2={W - PAD} y2={H - pct * H}
+          stroke="var(--border)" strokeWidth={0.5}
+        />
+      ))}
+      {data.map((d, i) => {
+        const barH = (d.value / max) * H;
+        const x = PAD + i * slotW + (slotW - barW) / 2;
+        const y = H - barH;
+        const pct = d.value / max;
+        return (
+          <g key={d.label}>
+            <rect x={x} y={y} width={barW} height={barH} rx={3} fill={color} opacity={0.82} />
+            {/* value label inside bar if tall enough */}
+            {pct > 0.18 && (
+              <text
+                x={x + barW / 2} y={y + 13}
+                textAnchor="middle" fontSize={9} fontWeight={700}
+                fill="#fff" style={{ fontFamily: 'inherit' }}
+              >
+                {formatValue(d.value)}
+              </text>
+            )}
+            {/* day/hour label below bar */}
+            <text
+              x={x + barW / 2} y={H + 16}
+              textAnchor="middle" fontSize={9}
+              fill="var(--text-muted)" style={{ fontFamily: 'inherit' }}
+            >
+              {d.label}
+            </text>
+            {/* sub label (e.g. order count) below day label */}
+            {d.sub && (
+              <text
+                x={x + barW / 2} y={H + 25}
+                textAnchor="middle" fontSize={8}
+                fill="var(--text-muted)" style={{ fontFamily: 'inherit' }}
+              >
+                {d.sub}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Returns age label + colors for an order placed at createdAt
 const ageBadge = (createdAt: string): { label: string; color: string; bg: string } => {
@@ -27,6 +104,8 @@ interface Stats {
   lowStockProducts: number;
 }
 
+interface DayRevenue { label: string; dayKey: string; revenue: number; orders: number; }
+
 interface RecentOrder {
   id: string;
   order_number: string | null;
@@ -47,6 +126,8 @@ export const Dashboard: React.FC = () => {
   });
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [todayItems, setTodayItems] = useState<Array<Array<{ name: string; quantity: number }>>>([]);
+  const [weekRevenue, setWeekRevenue] = useState<DayRevenue[]>([]);
+  const [hourBuckets, setHourBuckets] = useState<number[]>(new Array(24).fill(0));
   const [loading, setLoading] = useState(true);
 
   // Tick every 60s so age badges refresh without a page reload
@@ -63,12 +144,14 @@ export const Dashboard: React.FC = () => {
       const todayISO    = midnight.toISOString();
       const monthStart  = new Date(midnight.getFullYear(), midnight.getMonth(), 1).toISOString();
       const sixHoursAgo = new Date(Date.now() - 6 * 3_600_000).toISOString();
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
       const [
         pendingRes, todayCountRes, monthRevRes, allRevRes,
         fulfilledRes, failedRes, agingRes,
         visitsRes, appsRes, lowStockRes,
         recentRes, todayOrdersRes,
+        weekFulfilledRes, weekAllRes,
       ] = await Promise.all([
         // Pending count
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -98,6 +181,10 @@ export const Dashboard: React.FC = () => {
           .limit(10),
         // Today's orders items (for top-products)
         supabase.from('orders').select('items').gte('created_at', todayISO).neq('status', 'cancelled'),
+        // Last 7 days fulfilled orders (revenue chart)
+        supabase.from('orders').select('total, created_at').eq('status', 'fulfilled').gte('created_at', sevenDaysAgo),
+        // Last 7 days all orders (hour distribution)
+        supabase.from('orders').select('created_at').neq('status', 'cancelled').gte('created_at', sevenDaysAgo),
       ]);
 
       setStats({
@@ -121,6 +208,33 @@ export const Dashboard: React.FC = () => {
           return Array.isArray(raw) ? (raw as Array<{ name: string; quantity: number }>) : [];
         }),
       );
+
+      // Build 7-day revenue chart data (last 7 calendar days, oldest → newest)
+      const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const revByDay = new Map<string, { revenue: number; orders: number }>();
+      const days: DayRevenue[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toISOString().slice(0, 10);
+        revByDay.set(key, { revenue: 0, orders: 0 });
+        days.push({ label: DAY_LABELS[d.getDay()], dayKey: key, revenue: 0, orders: 0 });
+      }
+      for (const row of (weekFulfilledRes.data ?? [])) {
+        const key = (row as { created_at: string; total: number }).created_at.slice(0, 10);
+        const bucket = revByDay.get(key);
+        if (bucket) { bucket.revenue += Number((row as { total: number }).total); bucket.orders += 1; }
+      }
+      setWeekRevenue(days.map((d) => ({ ...d, ...(revByDay.get(d.dayKey) ?? { revenue: 0, orders: 0 }) })));
+
+      // Build 24-hour order-volume buckets
+      const buckets = new Array(24).fill(0) as number[];
+      for (const row of (weekAllRes.data ?? [])) {
+        const h = new Date((row as { created_at: string }).created_at).getHours();
+        buckets[h] = (buckets[h] ?? 0) + 1;
+      }
+      setHourBuckets([...buckets]);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -375,6 +489,88 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Charts row ── */}
+      <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+
+        {/* 7-day revenue bar chart */}
+        <div className="dashboard-panel" style={{ flex: '1 1 340px', minWidth: 0 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <BarChart2 size={18} style={{ color: 'var(--secondary)' }} />
+            7-Day Revenue
+            <span style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+              fulfilled orders only
+            </span>
+          </h2>
+          {weekRevenue.length === 0 ? (
+            <div className="admin-empty-state" style={{ padding: '2rem 0' }}>Loading chart…</div>
+          ) : weekRevenue.every((d) => d.revenue === 0) ? (
+            <div className="admin-empty-state" style={{ padding: '2rem 0' }}>No fulfilled orders in the last 7 days.</div>
+          ) : (
+            <>
+              <div style={{ marginTop: '0.75rem' }}>
+                <MiniBarChart
+                  data={weekRevenue.map((d) => ({
+                    label: d.label,
+                    value: d.revenue,
+                    sub: d.orders > 0 ? `${d.orders}` : '',
+                  }))}
+                  color="var(--secondary)"
+                  formatValue={(n) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n))}
+                  height={110}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span>Total: <strong style={{ color: 'var(--text-main)' }}>{fmt(weekRevenue.reduce((s, d) => s + d.revenue, 0))}</strong></span>
+                <span>Orders: <strong style={{ color: 'var(--text-main)' }}>{weekRevenue.reduce((s, d) => s + d.orders, 0)}</strong></span>
+                <span>Best: <strong style={{ color: 'var(--secondary)' }}>
+                  {weekRevenue.reduce((best, d) => d.revenue > best.revenue ? d : best, weekRevenue[0]).label}
+                </strong></span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Order volume by hour */}
+        <div className="dashboard-panel" style={{ flex: '1 1 340px', minWidth: 0 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <TrendingUp size={18} style={{ color: 'var(--primary)' }} />
+            Orders by Hour
+            <span style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+              last 7 days
+            </span>
+          </h2>
+          {hourBuckets.every((v) => v === 0) ? (
+            <div className="admin-empty-state" style={{ padding: '2rem 0' }}>No order data yet.</div>
+          ) : (
+            <>
+              <div style={{ marginTop: '0.75rem' }}>
+                <MiniBarChart
+                  data={hourBuckets.map((count, h) => ({
+                    label: h % 3 === 0 ? `${h}h` : '',
+                    value: count,
+                  }))}
+                  color="var(--primary)"
+                  formatValue={String}
+                  height={110}
+                />
+              </div>
+              {(() => {
+                const peakH = hourBuckets.indexOf(Math.max(...hourBuckets));
+                const total = hourBuckets.reduce((s, v) => s + v, 0);
+                const busyBand = peakH < 12 ? 'morning' : peakH < 17 ? 'afternoon' : 'evening';
+                return (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', gap: '1.5rem' }}>
+                    <span>Peak: <strong style={{ color: 'var(--text-main)' }}>{peakH}:00–{peakH + 1}:00</strong></span>
+                    <span>Band: <strong style={{ color: 'var(--primary)' }}>{busyBand}</strong></span>
+                    <span>Total: <strong style={{ color: 'var(--text-main)' }}>{total} orders</strong></span>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
