@@ -85,7 +85,7 @@ export const Navbar: React.FC = () => {
                 />
               </svg>
             )}
-            <Sprout className="logo-icon" />
+            <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms" className="logo-icon" style={{ objectFit: 'cover', padding: 0 }} />
           </div>
           <span>Chittoor Farms</span>
         </NavLink>
