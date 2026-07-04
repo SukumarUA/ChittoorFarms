@@ -73,16 +73,33 @@ export const AdminReferrals: React.FC = () => {
         <div class="url">Use at: <strong>chittoorfarms.in</strong></div>
         ${c.description ? `<div class="desc">${esc(c.description)}</div>` : ''}
       </div>`).join('');
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Referral Code Cards</title>
-      <style>${PRINT_CSS}</style></head>
-      <body><div class="page">
-        <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #17633f">
-          <h1 style="color:#17633f">Chittoor Farms – Referral Code Cards</h1>
-          <p style="color:#6b7280;font-size:0.82rem">Print and cut · ${active.length} active code${active.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString('en-IN')}</p>
-        </div>
-        <div class="cards-grid">${cards}</div>
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Referral Code Cards – Chittoor Farms</title>
+  <style>${PRINT_CSS}</style>
+</head>
+<body>
+  <div class="wm"><img src="${logoUrl()}" alt="" /></div>
+  <div class="page">
+    <div class="logo-row">
+      <img src="${logoUrl()}" alt="Chittoor Farms" />
+      <div class="brand">
+        <h1>Chittoor Farms</h1>
+        <p>Fresh from Chittoor's Orchards · chittoorfarms.in</p>
       </div>
-      <script>window.onload=()=>{window.print();};<\/script></body></html>`;
+      <div class="doc-title">
+        <div class="title">Referral Cards</div>
+        <div class="ref">Print &amp; cut · ${active.length} code${active.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString('en-IN')}</div>
+      </div>
+    </div>
+    <div class="cards-grid">${cards}</div>
+    <div class="footer">Chittoor Farms · chittoorfarms.in · Printed ${new Date().toLocaleString('en-IN')}</div>
+  </div>
+  <script>window.onload=()=>{window.print();window.onafterprint=()=>{try{URL.revokeObjectURL(window.location.href);}catch(e){}}};<\/script>
+</body>
+</html>`;
     openPrint(html);
   };
 
