@@ -194,19 +194,16 @@ export const CMS: React.FC = () => {
 
   const loadSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Use select('*') — dynamic strings break Supabase TypeScript inference.
+      // Cast to any so new columns added via migration are accessible without
+      // regenerating types. eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rawData, error } = await supabase
         .from('settings')
-        .select([
-          'hero_heading', 'hero_subtext', 'wa_number', 'notice_board', 'shop_cta_text',
-          'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube',
-          'contact_phone', 'contact_email', 'contact_address', 'footer_tagline',
-          'about_story_heading', 'about_story_body',
-          'visit_cta_heading', 'visit_cta_text',
-          'features_heading', 'features_subtext', 'feature_cards', 'heritage_stats',
-          'team', 'categories', 'farm_types', 'use_categories',
-        ].join(', '))
+        .select('*')
         .eq('id', 'main')
         .single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = rawData as any;
 
       if (error) throw error;
 

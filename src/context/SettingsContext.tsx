@@ -100,19 +100,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const load = async () => {
       try {
-        const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rawData, error } = await supabase
           .from('settings')
-          .select(
-            'hero_heading, hero_subtext, wa_number, notice_board, shop_cta_text,' +
-            'social_facebook, social_instagram, social_twitter, social_youtube,' +
-            'contact_phone, contact_email, contact_address, footer_tagline,' +
-            'about_story_heading, about_story_body,' +
-            'visit_cta_heading, visit_cta_text,' +
-            'features_heading, features_subtext, feature_cards,' +
-            'heritage_stats'
-          )
+          .select('*')
           .eq('id', 'main')
           .single();
+        // Cast to any so new columns added via migration are accessible without
+        // regenerating Supabase types after every schema change.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = rawData as any;
         if (!error && data) {
           setSettings({
             hero_heading:          data.hero_heading          || DEFAULTS.hero_heading,
