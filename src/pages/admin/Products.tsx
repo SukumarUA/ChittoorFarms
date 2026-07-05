@@ -8,7 +8,7 @@ interface Product {
   id: string;
   name: string;
   category: string;
-  use: 'fresh' | 'juice' | 'pickle' | null;
+  use: string | null;
   description: string;
   price: number;
   unit: string;
@@ -23,6 +23,7 @@ export const Products: React.FC = () => {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [useCategories, setUseCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form & Modal states
@@ -33,7 +34,7 @@ export const Products: React.FC = () => {
   // Form fields
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Mangoes');
-  const [use, setUse] = useState<'fresh' | 'juice' | 'pickle'>('fresh');
+  const [use, setUse] = useState<string>('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState('1 kg');
@@ -69,12 +70,13 @@ export const Products: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('categories')
+        .select('categories, use_categories')
         .eq('id', 'main')
         .single();
       if (error) throw error;
-      if (data && Array.isArray(data.categories)) {
-        setCategories(data.categories);
+      if (data) {
+        if (Array.isArray(data.categories)) setCategories(data.categories);
+        if (Array.isArray(data.use_categories)) setUseCategories(data.use_categories);
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -90,7 +92,7 @@ export const Products: React.FC = () => {
     setEditTarget(null);
     setName('');
     setCategory(categories[0] || 'Mangoes');
-    setUse('fresh');
+    setUse(useCategories[0] || '');
     setDescription('');
     setPrice('');
     setUnit('1 kg');
@@ -107,7 +109,7 @@ export const Products: React.FC = () => {
     setEditTarget(product);
     setName(product.name);
     setCategory(product.category || 'Mangoes');
-    setUse(product.use || 'fresh');
+    setUse(product.use || useCategories[0] || '');
     setDescription(product.description || '');
     setPrice(product.price.toString());
     setUnit(product.unit);
@@ -481,13 +483,22 @@ export const Products: React.FC = () => {
                       id="prodUse"
                       className="form-control"
                       value={use}
-                      onChange={(e: any) => setUse(e.target.value)}
+                      onChange={(e) => setUse(e.target.value)}
                       required
                     >
-                      <option value="fresh">Fresh (Table Eating)</option>
-                      <option value="juice">Juice (Pulping/Juicing)</option>
-                      <option value="pickle">Pickle (Raw/Chutney)</option>
+                      {useCategories.length === 0 ? (
+                        <option value="">— No options configured in CMS —</option>
+                      ) : (
+                        useCategories.map((uc) => (
+                          <option key={uc} value={uc}>{uc}</option>
+                        ))
+                      )}
                     </select>
+                    {useCategories.length === 0 && (
+                      <small style={{ color: 'var(--warning)' }}>
+                        Go to CMS → Primary Use Categories to add options.
+                      </small>
+                    )}
                   </div>
                 )}
 

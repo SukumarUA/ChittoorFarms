@@ -22,6 +22,7 @@ interface SiteSettings {
   team: TeamMember[];
   categories: string[];
   farm_types: string[];
+  use_categories: string[];
   shop_cta_text: string;
   social_facebook: string;
   social_instagram: string;
@@ -36,6 +37,7 @@ const emptySettings: SiteSettings = {
   team: [],
   categories: [],
   farm_types: [],
+  use_categories: [],
   shop_cta_text: 'Shop Mangoes',
   social_facebook: '',
   social_instagram: '',
@@ -73,6 +75,7 @@ export const CMS: React.FC = () => {
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [newFarmType, setNewFarmType] = useState('');
+  const [newUseCategory, setNewUseCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingTeamIndex, setUploadingTeamIndex] = useState<number | null>(null);
@@ -81,7 +84,7 @@ export const CMS: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('hero_heading, hero_subtext, wa_number, notice_board, team, categories, farm_types, shop_cta_text, social_facebook, social_instagram, social_twitter, social_youtube')
+        .select('hero_heading, hero_subtext, wa_number, notice_board, team, categories, farm_types, use_categories, shop_cta_text, social_facebook, social_instagram, social_twitter, social_youtube')
         .eq('id', 'main')
         .single();
 
@@ -93,6 +96,7 @@ export const CMS: React.FC = () => {
         team:             Array.isArray(data.team) ? data.team : [],
         categories:       Array.isArray(data.categories) ? data.categories : [],
         farm_types:       Array.isArray(data.farm_types) ? data.farm_types : [],
+        use_categories:   Array.isArray(data.use_categories) ? data.use_categories : [],
         shop_cta_text:    data.shop_cta_text    || 'Shop Mangoes',
         social_facebook:  data.social_facebook  || '',
         social_instagram: data.social_instagram || '',
@@ -126,6 +130,7 @@ export const CMS: React.FC = () => {
           team:             settings.team,
           categories:       settings.categories,
           farm_types:       settings.farm_types,
+          use_categories:   settings.use_categories,
           shop_cta_text:    settings.shop_cta_text.trim() || 'Shop Mangoes',
           social_facebook:  settings.social_facebook.trim(),
           social_instagram: settings.social_instagram.trim(),
@@ -221,6 +226,17 @@ export const CMS: React.FC = () => {
     }
     setSettings({ ...settings, farm_types: [...settings.farm_types, farmType] });
     setNewFarmType('');
+  };
+
+  const addUseCategory = () => {
+    const val = newUseCategory.trim();
+    if (!val) return;
+    if (settings.use_categories.some((item) => item.toLowerCase() === val.toLowerCase())) {
+      showToast('Use category already exists.', 'warning');
+      return;
+    }
+    setSettings({ ...settings, use_categories: [...settings.use_categories, val] });
+    setNewUseCategory('');
   };
 
   if (loading) return <div className="admin-empty-state">Loading CMS content...</div>;
@@ -337,6 +353,41 @@ export const CMS: React.FC = () => {
               <span key={category} className="cms-category-chip">
                 {category}
                 <button type="button" onClick={() => setSettings({ ...settings, categories: settings.categories.filter((item) => item !== category) })} aria-label={`Remove ${category}`}><X size={13} /></button>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="dashboard-panel cms-section">
+          <h2>Primary Use Categories</h2>
+          <p className="cms-section-description">
+            Options shown in the "Primary Use Category" dropdown when adding or editing a Mango product.
+            Add, remove, or reorder to match your seasonal offerings.
+          </p>
+          <div className="cms-add-row">
+            <input
+              className="form-control"
+              placeholder="e.g. Fresh (Table Eating)"
+              value={newUseCategory}
+              onChange={(e) => setNewUseCategory(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUseCategory(); } }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addUseCategory}><Plus size={16} /> Add</button>
+          </div>
+          <div className="cms-category-list">
+            {settings.use_categories.length === 0 && (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0' }}>
+                No use categories yet. Add at least one so products can be categorised.
+              </p>
+            )}
+            {settings.use_categories.map((uc) => (
+              <span key={uc} className="cms-category-chip">
+                {uc}
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, use_categories: settings.use_categories.filter((item) => item !== uc) })}
+                  aria-label={`Remove ${uc}`}
+                ><X size={13} /></button>
               </span>
             ))}
           </div>
