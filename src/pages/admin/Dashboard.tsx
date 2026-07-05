@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, BarChart2, CalendarDays, Check, Clock,
-  IndianRupee, Package, TrendingUp, UserCheck, Wallet, X, ShoppingBag, Filter,
+  BarChart2, CalendarDays, Check, Clock,
+  IndianRupee, Package, TrendingUp, UserCheck, Wallet, X, ShoppingBag, Filter, AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
