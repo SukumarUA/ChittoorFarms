@@ -1111,37 +1111,43 @@ export const Orders: React.FC = () => {
                         <td>
                           <div className="admin-table-actions">
                             {order.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleOpenFulfil(order)}
-                                  title="Accept order and record payment"
-                                  aria-label={`Fulfill order ${order.order_number || order.id}`}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'var(--success)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
-                                ><Check size={13} /><span>Fulfill</span></button>
-                                <button
-                                  onClick={() => handleMarkFailed(order.id)}
-                                  title="Reject order"
-                                  aria-label={`Reject order ${order.order_number || order.id}`}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'transparent', color: 'var(--danger)', border: '1.5px solid var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
-                                ><X size={13} /><span>Reject</span></button>
-                                <button className="table-icon-btn" onClick={() => printChallan(order)} title="Print Delivery Challan"><Printer size={14} /></button>
-                                <a
-                                  href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(order))}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="table-icon-btn"
-                                  title="Send WhatsApp confirmation"
-                                  style={{ color: '#16a34a', textDecoration: 'none' }}
-                                  aria-label={`WhatsApp ${order.customer_name}`}
-                                ><MessageSquare size={14} /></a>
-                                <button
-                                  className="table-icon-btn"
-                                  onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
-                                  title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue reported'}` : 'Flag a quality/delivery issue'}
-                                  style={{ color: order.complaint_flag ? '#dc2626' : undefined, borderColor: order.complaint_flag ? '#dc2626' : undefined }}
-                                  aria-label={order.complaint_flag ? 'Clear issue flag' : 'Flag issue'}
-                                ><AlertTriangle size={14} /></button>
-                              </>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                {/* Primary actions row */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <button
+                                    onClick={() => handleOpenFulfil(order)}
+                                    title="Accept order and record payment"
+                                    aria-label={`Fulfill order ${order.order_number || order.id}`}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'var(--success)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
+                                  ><Check size={13} /><span>Fulfill</span></button>
+                                  <button
+                                    onClick={() => handleMarkFailed(order.id)}
+                                    title="Reject order"
+                                    aria-label={`Reject order ${order.order_number || order.id}`}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'transparent', color: 'var(--danger)', border: '1.5px solid var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
+                                  ><X size={13} /><span>Reject</span></button>
+                                </div>
+                                {/* Secondary actions row */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <button className="table-icon-btn" onClick={() => printChallan(order)} title="Print Delivery Challan"><Printer size={14} /></button>
+                                  <a
+                                    href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(order))}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="table-icon-btn"
+                                    title="Send WhatsApp confirmation"
+                                    style={{ color: '#16a34a', textDecoration: 'none' }}
+                                    aria-label={`WhatsApp ${order.customer_name}`}
+                                  ><MessageSquare size={14} /></a>
+                                  <button
+                                    className="table-icon-btn"
+                                    onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
+                                    title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue reported'}` : 'Flag a quality/delivery issue'}
+                                    style={{ color: order.complaint_flag ? '#dc2626' : undefined, borderColor: order.complaint_flag ? '#dc2626' : undefined }}
+                                    aria-label={order.complaint_flag ? 'Clear issue flag' : 'Flag issue'}
+                                  ><AlertTriangle size={14} /></button>
+                                </div>
+                              </div>
                             )}
                             {order.status === 'fulfilled' && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
