@@ -883,7 +883,9 @@ export const Orders: React.FC = () => {
   };
 
   // ── Shared filter toolbar ─────────────────────────────────────────────────
-  const FilterToolbar = () => (
+  // NOTE: declared as plain JSX (not a component function) so that the search
+  // input never unmounts on re-render and the cursor is never lost mid-typing.
+  const filterToolbar = (
     <div className="orders-toolbar">
       <div className="admin-filter-bar">
         <div className="admin-search-field">
@@ -960,7 +962,7 @@ export const Orders: React.FC = () => {
             </div>
           </div>
 
-          <FilterToolbar />
+          {filterToolbar}
 
           {(dateFrom || dateTo || searchTerm) && orderPageCount > 0 && (
             <p className="orders-filter-summary">
@@ -1221,7 +1223,7 @@ export const Orders: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       {viewMode === 'by-product' && (
         <>
-          <FilterToolbar />
+          {filterToolbar}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', margin: '0.75rem 0 1rem 0', fontSize: '0.85rem' }}>
             <span style={{ padding: '0.25rem 0.75rem', background: '#fef3c7', color: 'var(--warning)', borderRadius: '999px', fontWeight: 600 }}>
               Pending: {productSummaries.reduce((s, p) => s + p.pendingQty, 0)} units across {productSummaries.filter((p) => p.pendingQty > 0).length} products
@@ -1322,7 +1324,7 @@ export const Orders: React.FC = () => {
       {viewMode === 'by-referral' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-            <FilterToolbar />
+            {filterToolbar}
             <button
               type="button"
               className="btn btn-outline"
