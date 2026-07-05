@@ -203,12 +203,6 @@ export const AdminLayout: React.FC = () => {
           </li>
         </ul>
 
-        <div className="admin-sidebar-footer">
-          <button className="btn btn-outline admin-signout-button" onClick={handleLogout} title={isSidebarCollapsed ? 'Sign Out' : undefined}>
-            <LogOut size={16} />
-            <span className="admin-sidebar-label">Sign Out</span>
-          </button>
-        </div>
       </aside>
 
       {/* Inactivity warning banner */}
@@ -240,8 +234,18 @@ export const AdminLayout: React.FC = () => {
             <ChevronRight size={14} />
             <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{activeSection}</span>
           </div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-            Active: <span style={{ color: 'var(--secondary)' }}>{user.email}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Active:</span>{' '}
+              <span style={{ color: 'var(--secondary)' }}>{user.email}</span>
+            </span>
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', flexShrink: 0, transition: 'var(--transition-fast)' }}
+            >
+              <LogOut size={15} />
+            </button>
           </div>
         </header>
 
