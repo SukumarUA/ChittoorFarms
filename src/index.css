@@ -2911,6 +2911,28 @@ main.main-content {
 .order-action-icon.reject { color: var(--danger); background: transparent; border-color: var(--danger); }
 .order-action-icon.edit { color: var(--secondary); background: var(--secondary-light); border-color: var(--secondary); }
 
+/* Compact icon-only button for use inside table action cells */
+.table-icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+}
+.table-icon-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-main);
+  border-color: var(--text-muted);
+}
+
 .payments-heading {
   display: flex;
   align-items: flex-start;

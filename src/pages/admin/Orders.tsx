@@ -390,6 +390,9 @@ export const Orders: React.FC = () => {
     try {
       const { error } = await supabase.from('orders').update({ status: 'failed' }).eq('id', id);
       if (error) throw error;
+      // Optimistic update for both the paged view (By Order) and the full list (By Product/Referral)
+      setPagedOrders((current) => current.filter((o) => o.id !== id));
+      setTabCounts((c) => ({ ...c, pending: Math.max(0, c.pending - 1), failed: c.failed + 1 }));
       setOrders((current) => current.map((order) => order.id === id ? { ...order, status: 'failed' } : order));
       showToast('Order marked as Failed.', 'warning');
     } catch (err) {
@@ -406,6 +409,8 @@ export const Orders: React.FC = () => {
         payment_reference: null, payment_notes: null, payment_recorded_at: null,
       }).eq('id', id);
       if (error) throw error;
+      setPagedOrders((current) => current.filter((o) => o.id !== id));
+      setTabCounts((c) => ({ ...c, failed: Math.max(0, c.failed - 1), pending: c.pending + 1 }));
       setOrders((current) => current.map((order) =>
         order.id === id ? { ...order, status: 'pending', payment_mode: null, payment_amount: null, payment_reference: null, payment_notes: null, payment_recorded_at: null } : order
       ));
@@ -422,6 +427,8 @@ export const Orders: React.FC = () => {
     try {
       const { error } = await supabase.from('orders').delete().eq('id', deleteTargetOrder.id);
       if (error) throw error;
+      setPagedOrders((current) => current.filter((o) => o.id !== deleteTargetOrder.id));
+      setTabCounts((c) => ({ ...c, failed: Math.max(0, c.failed - 1) }));
       setOrders((current) => current.filter((order) => order.id !== deleteTargetOrder.id));
       showToast('Order deleted permanently.', 'success');
       setDeleteTargetOrder(null);
@@ -457,6 +464,9 @@ export const Orders: React.FC = () => {
         payment_recorded_at: paymentRecordedAt,
       }).eq('id', selectedOrder.id);
       if (error) throw error;
+      // Optimistic: remove from current pending view and update counts instantly
+      setPagedOrders((current) => current.filter((o) => o.id !== selectedOrder.id));
+      setTabCounts((c) => ({ ...c, pending: Math.max(0, c.pending - 1), fulfilled: c.fulfilled + 1 }));
       setOrders((current) => current.map((order) =>
         order.id === selectedOrder.id ? { ...order, status: 'fulfilled', payment_mode: paymentMode, payment_amount: paidAmount, payment_reference: paymentReference.trim() || null, payment_notes: paymentNotes.trim() || null, payment_recorded_at: paymentRecordedAt } : order
       ));
@@ -1114,39 +1124,37 @@ export const Orders: React.FC = () => {
                                   aria-label={`Reject order ${order.order_number || order.id}`}
                                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'transparent', color: 'var(--danger)', border: '1.5px solid var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
                                 ><X size={13} /><span>Reject</span></button>
-                                <button className="btn-icon" onClick={() => printChallan(order)} title="Print Delivery Challan" style={{ color: 'var(--text-muted)' }}><Printer size={16} /></button>
+                                <button className="table-icon-btn" onClick={() => printChallan(order)} title="Print Delivery Challan"><Printer size={14} /></button>
                                 <a
                                   href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(order))}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="btn-icon"
+                                  className="table-icon-btn"
                                   title="Send WhatsApp confirmation"
-                                  style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                  style={{ color: '#16a34a', textDecoration: 'none' }}
                                   aria-label={`WhatsApp ${order.customer_name}`}
-                                ><MessageSquare size={16} /></a>
+                                ><MessageSquare size={14} /></a>
                                 <button
-                                  className="btn-icon"
+                                  className="table-icon-btn"
                                   onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
                                   title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue reported'}` : 'Flag a quality/delivery issue'}
-                                  style={{ color: order.complaint_flag ? '#dc2626' : 'var(--text-muted)' }}
+                                  style={{ color: order.complaint_flag ? '#dc2626' : undefined, borderColor: order.complaint_flag ? '#dc2626' : undefined }}
                                   aria-label={order.complaint_flag ? 'Clear issue flag' : 'Flag issue'}
-                                >
-                                  <AlertTriangle size={16} />
-                                </button>
+                                ><AlertTriangle size={14} /></button>
                               </>
                             )}
                             {order.status === 'fulfilled' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>✓ Fulfilled</span>
-                                <button className="btn-icon" onClick={() => printReceipt(order)} title="Print Customer Receipt" style={{ color: 'var(--text-muted)' }}><Printer size={15} /></button>
-                                <button
-                                  className="btn-icon"
-                                  onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
-                                  title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue'}` : 'Flag a quality issue'}
-                                  style={{ color: order.complaint_flag ? '#dc2626' : 'var(--text-muted)' }}
-                                >
-                                  <AlertTriangle size={15} />
-                                </button>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600, whiteSpace: 'nowrap' }}>✓ Fulfilled</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <button className="table-icon-btn" onClick={() => printReceipt(order)} title="Print Customer Receipt"><Printer size={14} /></button>
+                                  <button
+                                    className="table-icon-btn"
+                                    onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
+                                    title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue'}` : 'Flag a quality issue'}
+                                    style={{ color: order.complaint_flag ? '#dc2626' : undefined, borderColor: order.complaint_flag ? '#dc2626' : undefined }}
+                                  ><AlertTriangle size={14} /></button>
+                                </div>
                               </div>
                             )}
                             {order.status === 'failed' && (
