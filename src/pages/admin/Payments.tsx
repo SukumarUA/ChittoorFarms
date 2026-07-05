@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreditCard, Download, Pencil, Printer, Search, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
 
 type PaymentMode = 'UPI' | 'Cash on delivery' | 'Bank transfer' | 'Card';
 
@@ -117,21 +118,77 @@ export const Payments: React.FC = () => {
     }
   };
 
+  const printReport = () => {
+    const ref = `Payment Report · ${new Date().toLocaleDateString('en-IN')}`;
+    const orderValueTotal = filteredPayments.reduce((s, p) => s + Number(p.total), 0);
+
+    const rows = filteredPayments.map((p) => {
+      const balance = Math.max(0, Number(p.total) - Number(p.payment_amount || 0));
+      return `<tr>
+        <td style="white-space:nowrap;font-weight:700">${esc(p.order_number || p.id.slice(0, 8).toUpperCase())}</td>
+        <td style="white-space:nowrap;font-size:0.82em">${esc(new Date(p.payment_recorded_at || p.created_at).toLocaleDateString('en-IN'))}</td>
+        <td><strong>${esc(p.customer_name)}</strong><br><span style="color:#6b7280;font-size:0.82em">${esc(p.phone)}</span></td>
+        <td><span class="badge badge-fulfilled">${esc(p.payment_mode || 'Not set')}</span></td>
+        <td style="text-align:right">₹${Number(p.total).toLocaleString('en-IN')}</td>
+        <td style="text-align:right;font-weight:700;color:#15803d">₹${Number(p.payment_amount || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align:right;font-weight:${balance > 0 ? '700' : '400'};color:${balance > 0 ? '#dc2626' : '#374151'}">₹${balance.toLocaleString('en-IN')}</td>
+        <td style="font-size:0.82em;color:#374151">${esc(p.payment_reference || '—')}</td>
+        <td style="font-size:0.78em;color:#6b7280">${esc(p.payment_notes || '—')}</td>
+      </tr>`;
+    }).join('');
+
+    const totalsRow = `<tr class="total-row">
+      <td colspan="4"><strong>TOTALS (${filteredPayments.length} records)</strong></td>
+      <td style="text-align:right"><strong>₹${orderValueTotal.toLocaleString('en-IN')}</strong></td>
+      <td style="text-align:right"><strong>₹${collectedTotal.toLocaleString('en-IN')}</strong></td>
+      <td style="text-align:right"><strong>₹${outstandingTotal.toLocaleString('en-IN')}</strong></td>
+      <td colspan="2"></td>
+    </tr>`;
+
+    const body = `
+      ${logoRow('Payment Report', ref)}
+      <div class="info-grid">
+        <div class="info-box"><div class="lbl">Records</div><div class="val">${filteredPayments.length}</div></div>
+        <div class="info-box"><div class="lbl">Order Value</div><div class="val">₹${orderValueTotal.toLocaleString('en-IN')}</div></div>
+        <div class="info-box"><div class="lbl">Collected</div><div class="val" style="color:#15803d">₹${collectedTotal.toLocaleString('en-IN')}</div></div>
+        <div class="info-box"><div class="lbl">Outstanding</div><div class="val" style="color:#dc2626">₹${outstandingTotal.toLocaleString('en-IN')}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Order</th><th>Date</th><th>Customer</th><th>Mode</th>
+          <th style="text-align:right">Order Total</th>
+          <th style="text-align:right">Collected</th>
+          <th style="text-align:right">Balance</th>
+          <th>Reference</th><th>Notes</th>
+        </tr></thead>
+        <tbody>${rows}${totalsRow}</tbody>
+      </table>
+      ${footer()}`;
+
+    openPrint(wrapHtml('Payment Report – Chittoor Farms', body));
+  };
+
   const exportCsv = () => {
     const rows = [
-      ['Order Reference', 'Payment Date', 'Customer', 'Phone', 'Mode', 'Order Total', 'Paid Amount', 'Outstanding', 'Reference', 'Notes'],
-      ...filteredPayments.map((payment) => [
-        payment.order_number || payment.id.slice(0, 8).toUpperCase(),
-        new Date(payment.payment_recorded_at || payment.created_at).toLocaleString('en-IN'),
-        payment.customer_name,
-        payment.phone,
-        payment.payment_mode || '',
-        payment.total,
-        payment.payment_amount || 0,
-        Math.max(0, Number(payment.total) - Number(payment.payment_amount || 0)),
-        payment.payment_reference || '',
-        payment.payment_notes || '',
+      ['Order Ref', 'Payment Date', 'Customer', 'Phone', 'Mode', 'Order Total (INR)', 'Collected (INR)', 'Outstanding (INR)', 'Reference', 'Notes'],
+      ...filteredPayments.map((p) => [
+        p.order_number || p.id.slice(0, 8).toUpperCase(),
+        new Date(p.payment_recorded_at || p.created_at).toLocaleDateString('en-CA'), // ISO YYYY-MM-DD for spreadsheet sorting
+        p.customer_name,
+        p.phone,
+        p.payment_mode || 'Not set',
+        Number(p.total),
+        Number(p.payment_amount || 0),
+        Math.max(0, Number(p.total) - Number(p.payment_amount || 0)),
+        p.payment_reference || '',
+        p.payment_notes || '',
       ]),
+      [],
+      ['TOTALS', '', '', '', '',
+        filteredPayments.reduce((s, p) => s + Number(p.total), 0),
+        collectedTotal,
+        outstandingTotal,
+        '', ''],
     ];
     const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -147,7 +204,7 @@ export const Payments: React.FC = () => {
       <div className="payments-heading">
         <div><h1>Payments</h1><p>Reconcile, maintain, and report fulfilled-order payments.</p></div>
         <div className="payments-report-actions">
-          <button className="btn btn-outline" onClick={() => window.print()}><Printer size={16} /> Print Report</button>
+          <button className="btn btn-outline" onClick={printReport} disabled={!filteredPayments.length}><Printer size={16} /> Print Report</button>
           <button className="btn btn-secondary" onClick={exportCsv} disabled={!filteredPayments.length}><Download size={16} /> Export CSV</button>
         </div>
       </div>

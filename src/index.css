@@ -4409,11 +4409,17 @@ input:checked + .toggle-slider:before {
   flex-shrink: 0;
 }
 
-.orders-export-actions .btn {
+/* Compact, even button sizing for every admin toolbar */
+.orders-export-actions .btn,
+.payments-report-actions .btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   white-space: nowrap;
+  padding: 0.5rem 1.05rem;
+  font-size: 0.84rem;
+  border-radius: var(--radius-sm);
+  min-height: 2.25rem;
 }
 
 .orders-filter-summary {

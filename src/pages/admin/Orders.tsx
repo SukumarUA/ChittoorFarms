@@ -479,52 +479,49 @@ export const Orders: React.FC = () => {
   };
 
   const exportPdf = () => {
-    const logoUrl = `${window.location.origin}/CTRFLOGO.jpeg`;
+    const tabLabel = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    const ref = `${tabLabel} Orders · ${new Date().toLocaleDateString('en-IN')}${orderPageCount > PAGE_SIZE ? ` · Page ${orderPage + 1} of ${Math.ceil(orderPageCount / PAGE_SIZE)}` : ''}`;
+    const grandTotal = pagedOrders.reduce((s, o) => s + Number(o.total), 0);
+
     const rows = pagedOrders.map((order) => `
       <tr>
-        <td>${escapeHtml(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
-        <td>${escapeHtml(formatDateTime(order.created_at))}</td>
-        <td><strong>${escapeHtml(order.customer_name)}</strong><br>${escapeHtml(order.phone)}<br>${escapeHtml(order.address)} ${order.pin_code ? `- ${escapeHtml(order.pin_code)}` : ''}</td>
-        <td>${order.items.map((item) => `${escapeHtml(item.name)} × ${item.quantity}${escapeHtml(item.unit.replace(/^1\s*/, ''))}`).join('<br>')}
-            <br><strong>Total: ${order.items.reduce((sum, item) => sum + item.quantity, 0)}kg</strong></td>
-        <td>${escapeHtml(order.preferred_delivery_date || 'ASAP')}</td>
+        <td style="white-space:nowrap;font-weight:700">${esc(order.order_number || order.id.slice(0, 8).toUpperCase())}</td>
+        <td style="white-space:nowrap;font-size:0.82em">${esc(formatDate(order.created_at))}</td>
         <td>
-          ${order.discount_amount ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:0.85em">Rs.${escapeHtml(order.original_total ?? order.total)}</span><br>` : ''}
-          <strong>Rs.${escapeHtml(order.total)}</strong>
-          ${order.referral_code || order.promo_code ? `<br><span style="font-size:0.8em;color:#15803d">🏷 ${escapeHtml(order.referral_code || order.promo_code)}</span>` : ''}
+          <strong>${esc(order.customer_name)}</strong><br>
+          <span style="color:#6b7280;font-size:0.82em">${esc(order.phone)}</span><br>
+          <span style="color:#6b7280;font-size:0.78em">${esc(order.address)}${order.pin_code ? ` – ${esc(order.pin_code)}` : ''}</span>
+        </td>
+        <td style="font-size:0.82em">
+          ${order.items.map((item) => `${esc(item.name)} × ${item.quantity}${esc(item.unit.replace(/^1\s*/, ''))}`).join('<br>')}
+          <br><strong>${order.items.reduce((s, i) => s + i.quantity, 0)} units total</strong>
+        </td>
+        <td style="white-space:nowrap;font-size:0.82em">${esc(order.preferred_delivery_date || 'ASAP')}</td>
+        <td style="text-align:right;white-space:nowrap">
+          ${order.discount_amount && Number(order.discount_amount) > 0
+            ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:0.8em">₹${esc(String(order.original_total ?? order.total))}</span><br>`
+            : ''}
+          <strong style="color:#15803d">₹${esc(String(order.total))}</strong>
+          ${order.referral_code || order.promo_code
+            ? `<br><span style="font-size:0.75em;color:#92400e">🏷 ${esc(order.referral_code || order.promo_code)}</span>`
+            : ''}
         </td>
       </tr>`).join('');
-    const html = `<!doctype html><html><head><title>Chittoor Farms Orders</title><style>
-      body{font-family:Arial,sans-serif;color:#1f2937;padding:24px}
-      .wm{position:fixed;top:50%;left:50%;width:300px;transform:translate(-50%,-50%);opacity:.07;z-index:0;pointer-events:none}
-      .wm img{width:100%;object-fit:contain}
-      .rc{position:relative;z-index:1}
-      h1{color:#17633f;margin-bottom:4px}p{color:#64748b;margin-top:0}
-      table{width:100%;border-collapse:collapse;margin-top:16px;font-size:11px}
-      th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top}
-      th{background:#17633f;color:#fff}
-      .summary{display:flex;gap:24px;margin-top:12px;font-weight:bold;font-size:12px}
-      @page{size:landscape;margin:10mm 12mm}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body>
-    <div class="wm"><img src="${escapeHtml(logoUrl)}" alt=""/></div>
-    <main class="rc">
-      <h1>Chittoor Farms Orders</h1>
-      <p>${escapeHtml(activeTab.toUpperCase())} orders · Generated ${escapeHtml(new Date().toLocaleString('en-IN'))}</p>
-      <div class="summary">
-        <span>Records: ${pagedOrders.length}${orderPageCount > PAGE_SIZE ? ` (page ${orderPage + 1} of ${Math.ceil(orderPageCount / PAGE_SIZE)})` : ''}</span>
-        <span>Total value: Rs.${pagedOrders.reduce((sum, o) => sum + Number(o.total), 0).toLocaleString('en-IN')}</span>
-      </div>
-      <table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Delivery</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody></table>
-    </main>
-    <script>window.onload=()=>{window.print();window.onafterprint=()=>{URL.revokeObjectURL(window.location.href);};};<\/script>
-    </body></html>`;
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-    const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-    if (!win) { URL.revokeObjectURL(blobUrl); showToast('Please allow pop-ups.', 'warning'); return; }
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
+
+    const totalsRow = `<tr class="total-row">
+      <td colspan="5"><strong>TOTAL — ${pagedOrders.length} order${pagedOrders.length === 1 ? '' : 's'}</strong></td>
+      <td style="text-align:right"><strong>₹${grandTotal.toLocaleString('en-IN')}</strong></td>
+    </tr>`;
+
+    const body = `
+      ${logoRow(`${tabLabel} Orders`, ref)}
+      <table>
+        <thead><tr><th>Ref</th><th>Date</th><th>Customer &amp; Address</th><th>Items</th><th>Delivery</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${rows}${totalsRow}</tbody>
+      </table>
+      ${footer()}`;
+
+    openPrint(wrapHtml(`${tabLabel} Orders – Chittoor Farms`, body));
   };
 
   // ── Print: Delivery Challan ───────────────────────────────────────────────
