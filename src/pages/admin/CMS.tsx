@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Award, BarChart3, Bell, BookOpen, Building2, CheckCircle, Clock,
+  Award, BarChart3, Bell, BookOpen, Building2, CheckCircle,
   Globe, Heart, Image as ImageIcon, Leaf, MapPin, Megaphone,
   Package, Plus, Save, Share2, Shield, Sparkles, Sprout, Star,
   Tag, Trash2, TreePine, Truck, Upload, Users, X, Zap,
@@ -483,50 +483,7 @@ export const CMS: React.FC = () => {
   }
 
   return (
-    <div className="cms-wrapper">
-
-      {/* ── Top Status Bar ───────────────────────────────────────────────── */}
-      <div className="cms-topbar">
-        <div className="cms-topbar-left">
-          <span className="cms-topbar-brand">Content Manager</span>
-          <span className="cms-topbar-sep" aria-hidden="true">/</span>
-          <span className="cms-topbar-breadcrumb">Site Content</span>
-        </div>
-
-        <div className="cms-topbar-status">
-          {isDirty ? (
-            <>
-              <span className="cms-dirty-dot" />
-              <span className="cms-topbar-status-text unsaved">Unsaved changes</span>
-            </>
-          ) : lastSaved ? (
-            <>
-              <Clock size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
-              <span className="cms-topbar-status-text saved">Saved at {fmtSaveTime(lastSaved)}</span>
-            </>
-          ) : (
-            <span className="cms-topbar-status-text muted">All saved</span>
-          )}
-        </div>
-
-        <div className="cms-topbar-right">
-          <span className="cms-topbar-shortcut" title="Save shortcut">
-            <kbd>⌘</kbd><kbd>S</kbd>
-          </span>
-          <button
-            type="button"
-            className="btn btn-secondary cms-topbar-save-btn"
-            disabled={saving}
-            onClick={() => void doSave(settingsRef.current, noticesRef.current)}
-          >
-            <Save size={14} />
-            {saving ? 'Saving…' : 'Save All'}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Grid: Sidebar + Main ─────────────────────────────────────────── */}
-      <div className="cms-layout">
+    <div className="cms-layout">
 
         {/* ── Sidebar ── */}
         <aside className="cms-sidebar">
@@ -1166,6 +1123,5 @@ export const CMS: React.FC = () => {
           </form>
         </main>
       </div>
-    </div>
   );
 };
