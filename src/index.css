@@ -2837,7 +2837,9 @@ main.main-content {
 
 .admin-table-actions {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
 .admin-filter-bar {
@@ -2891,21 +2893,23 @@ main.main-content {
 }
 
 .order-action-icon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-muted);
   transition: var(--transition-fast);
 }
 
-.order-action-icon:hover { transform: translateY(-1px); }
-.order-action-icon.accept { color: #fff; background: var(--success); }
-.order-action-icon.reject { color: #fff; background: var(--danger); }
-.order-action-icon.edit { color: var(--secondary); background: var(--secondary-light); }
+.order-action-icon:hover { background: var(--bg-hover); transform: translateY(-1px); }
+.order-action-icon.accept { color: #fff; background: var(--success); border-color: var(--success); }
+.order-action-icon.reject { color: var(--danger); background: transparent; border-color: var(--danger); }
+.order-action-icon.edit { color: var(--secondary); background: var(--secondary-light); border-color: var(--secondary); }
 
 .payments-heading {
   display: flex;

@@ -88,7 +88,8 @@ const ageBadge = (createdAt: string): { label: string; color: string; bg: string
   const ms = Date.now() - new Date(createdAt).getTime();
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
-  const label = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  const d = Math.floor(h / 24);
+  const label = d >= 1 ? `${d}d old` : h > 0 ? `${h}h ${m}m old` : `${m}m old`;
   if (h >= 6) return { label, color: '#dc2626', bg: '#fee2e2' };
   if (h >= 2) return { label, color: '#92400e', bg: '#fef3c7' };
   return { label, color: '#166534', bg: '#dcfce7' };
@@ -985,7 +986,7 @@ export const Orders: React.FC = () => {
                     <th>Order Date</th>
                     <th>Customer Details</th>
                     <th>Items Ordered</th>
-                    <th>Payment Status</th>
+                    <th>Delivery &amp; Payment</th>
                     <th>Total</th>
                     <th>Actions</th>
                   </tr>
@@ -1044,9 +1045,9 @@ export const Orders: React.FC = () => {
                         <td>
                           <div className="order-items-list">
                             {order.items.map((item, i) => (
-                              <div key={i} className="order-item-row" style={{ gap: '1rem' }}>
+                              <div key={i} className="order-item-row">
                                 <span>{item.name} × {item.quantity}{item.unit.replace(/^1\s*/, '')}</span>
-                                <span style={{ color: 'var(--text-muted)' }}>@ ₹{item.price}/unit</span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>₹{item.price}/unit</span>
                               </div>
                             ))}
                             <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.4rem', paddingTop: '0.3rem', fontWeight: 600, fontSize: '0.85rem' }}>
@@ -1101,8 +1102,18 @@ export const Orders: React.FC = () => {
                           <div className="admin-table-actions">
                             {order.status === 'pending' && (
                               <>
-                                <button className="order-action-icon accept" onClick={() => handleOpenFulfil(order)} title="Accept order and record payment" aria-label={`Accept order ${order.order_number || order.id}`}><Check size={18} /></button>
-                                <button className="order-action-icon reject" onClick={() => handleMarkFailed(order.id)} title="Reject order" aria-label={`Reject order ${order.order_number || order.id}`}><X size={18} /></button>
+                                <button
+                                  onClick={() => handleOpenFulfil(order)}
+                                  title="Accept order and record payment"
+                                  aria-label={`Fulfill order ${order.order_number || order.id}`}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'var(--success)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
+                                ><Check size={13} /><span>Fulfill</span></button>
+                                <button
+                                  onClick={() => handleMarkFailed(order.id)}
+                                  title="Reject order"
+                                  aria-label={`Reject order ${order.order_number || order.id}`}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.7rem', fontSize: '0.78rem', fontWeight: 600, background: 'transparent', color: 'var(--danger)', border: '1.5px solid var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'var(--transition-fast)' }}
+                                ><X size={13} /><span>Reject</span></button>
                                 <button className="btn-icon" onClick={() => printChallan(order)} title="Print Delivery Challan" style={{ color: 'var(--text-muted)' }}><Printer size={16} /></button>
                                 <a
                                   href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(order))}`}
