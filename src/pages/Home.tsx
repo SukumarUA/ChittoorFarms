@@ -1,6 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Award, Leaf, Pin, Sprout } from 'lucide-react';
+import {
+  Award, CheckCircle, Globe, Heart, Leaf,
+  Package, Pin, Shield, Sprout, Star, Truck, Users, Zap,
+} from 'lucide-react';
+
+// Icon map for CMS-driven feature cards
+const FEATURE_ICON_MAP: Record<string, React.ReactNode> = {
+  Truck:       <Truck size={28} />,
+  Leaf:        <Leaf size={28} />,
+  Award:       <Award size={28} />,
+  Shield:      <Shield size={28} />,
+  Star:        <Star size={28} />,
+  CheckCircle: <CheckCircle size={28} />,
+  Heart:       <Heart size={28} />,
+  Zap:         <Zap size={28} />,
+  Users:       <Users size={28} />,
+  Globe:       <Globe size={28} />,
+  Package:     <Package size={28} />,
+};
+
+// Colour cycle for cards when no specific colour is set
+const CARD_COLORS = [
+  {},
+  { color: 'var(--secondary)', background: 'var(--secondary-light)' },
+  { color: 'var(--accent)',    background: 'var(--accent-light)' },
+];
 import { FaWhatsapp } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useSettings } from '../context/SettingsContext';
@@ -216,41 +241,34 @@ export const Home: React.FC = () => {
           </section>
         )}
 
-        {/* Value Propositions / Features */}
-        <section className="features-section">
-          <div className="feature-title">
-            <h2>Why Chittoor Farms?</h2>
-            <p style={{ maxWidth: '600px', margin: '0.5rem auto 0 auto' }}>
-              We bypass middle-men, cold chambers, and chemicals to offer you fruit the way nature intended.
-            </p>
-          </div>
-
-          <div className="grid-responsive">
-            <div className="feature-card">
-              <div className="feature-icon-wrapper">
-                <Truck size={28} />
-              </div>
-              <h3>Bypasses Cold Storage</h3>
-              <p>Our mangoes go straight from tree branches to delivery boxes. We never store fruit in nitrogenated cold warehouses.</p>
+        {/* Value Propositions / Features — driven by CMS */}
+        {settings.feature_cards.length > 0 && (
+          <section className="features-section">
+            <div className="feature-title">
+              <h2>{settings.features_heading}</h2>
+              {settings.features_subtext && (
+                <p style={{ maxWidth: '600px', margin: '0.5rem auto 0 auto' }}>
+                  {settings.features_subtext}
+                </p>
+              )}
             </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ color: 'var(--secondary)', background: 'var(--secondary-light)' }}>
-                <Leaf size={28} />
-              </div>
-              <h3>Naturally Ripened</h3>
-              <p>We do not use hazardous chemicals like calcium carbide. All mangoes are ripened using traditional hay-sorting methods.</p>
+            <div className="grid-responsive">
+              {settings.feature_cards.map((card, idx) => {
+                const iconName = card.icon || ['Truck', 'Leaf', 'Award'][idx] || 'Star';
+                const colorStyle = CARD_COLORS[idx % CARD_COLORS.length];
+                return (
+                  <div key={idx} className="feature-card">
+                    <div className="feature-icon-wrapper" style={colorStyle}>
+                      {FEATURE_ICON_MAP[iconName] ?? <Star size={28} />}
+                    </div>
+                    <h3>{card.heading}</h3>
+                    <p>{card.body}</p>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ color: 'var(--accent)', background: 'var(--accent-light)' }}>
-                <Award size={28} />
-              </div>
-              <h3>Direct Support</h3>
-              <p>We pay our partner farmers in Chittoor district up to 40% more than wholesale markets, supporting local agriculture directly.</p>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </div>
   );

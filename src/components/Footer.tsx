@@ -6,7 +6,12 @@ import { useSettings } from '../context/SettingsContext';
 
 export const Footer: React.FC = () => {
   const { settings } = useSettings();
-  const { wa_number: waNumber, social_facebook, social_instagram, social_twitter, social_youtube } = settings;
+  const {
+    wa_number: waNumber,
+    social_facebook, social_instagram, social_twitter, social_youtube,
+    contact_phone, contact_email, contact_address,
+    footer_tagline,
+  } = settings;
 
   return (
     <footer className="app-footer">
@@ -18,7 +23,7 @@ export const Footer: React.FC = () => {
               Chittoor Farms
             </span>
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              Empowering local family farms in Chittoor district, Andhra Pradesh by connecting them directly to consumers. Farm-picked, naturally ripened, and bypasses cold storage.
+              {footer_tagline}
             </p>
             {/* Social Icons */}
             <div className="footer-socials" style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
@@ -99,18 +104,24 @@ export const Footer: React.FC = () => {
           <div className="footer-nav">
             <h4>Contact Operations</h4>
             <ul className="footer-nav-links" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Phone size={14} />
-                <span>+91 93900 33516</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Mail size={14} />
-                <span>contact@chittoorfarms.in</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MapPin size={14} />
-                <span>Chittoor, Andhra Pradesh, India</span>
-              </li>
+              {contact_phone?.trim() && (
+                <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Phone size={14} />
+                  <span>{contact_phone}</span>
+                </li>
+              )}
+              {contact_email?.trim() && (
+                <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Mail size={14} />
+                  <span>{contact_email}</span>
+                </li>
+              )}
+              {contact_address?.trim() && (
+                <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <MapPin size={14} />
+                  <span>{contact_address}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>

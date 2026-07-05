@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Users, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
+import { useSettings } from '../context/SettingsContext';
+
 interface TeamMember {
   name: string;
   role: string;
@@ -16,6 +18,7 @@ export const About: React.FC = () => {
   }, []);
 
   const { showToast } = useToast();
+  const { settings } = useSettings();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,16 +124,9 @@ export const About: React.FC = () => {
         <div className="container">
           <div className="about-grid">
             <div className="about-story">
-              <h1>Connecting You to the Soil</h1>
-              <p>
-                Chittoor district in Andhra Pradesh is renowned for producing some of India's finest mango varieties, yet traditional supply chains keep growers impoverished and customers eating chemically-ripened, stale fruit.
-              </p>
-              <p>
-                <strong>Chittoor Farms</strong> was founded with a singular purpose: cut out cold houses, middle agents, and chemical sorting. We source directly from orchards, ripen mangoes naturally in traditional hay grass, and deliver them straight to city thresholds within hours of harvesting.
-              </p>
-              <p>
-                This ensures you get mangoes with their rich, original sugars intact, while farmers earn a premium, fair wage directly.
-              </p>
+              <h1>{settings.about_story_heading}</h1>
+              {/* Supports basic HTML like <br/> for paragraph breaks */}
+              <div dangerouslySetInnerHTML={{ __html: settings.about_story_body.replace(/<br\s*\/?>/gi, '<br/>') }} />
             </div>
 
             <div className="about-logo-wrapper">
@@ -163,28 +159,17 @@ export const About: React.FC = () => {
             </div>
           </div>
 
-          <div className="heritage-stats-grid">
-            <div className="heritage-stat-card">
-              <div className="stat-num">100,000+</div>
-              <div className="stat-sub">Acres Cultivated</div>
-              <p className="stat-desc">Mango orchards across Chittoor district — the largest in AP</p>
+          {settings.heritage_stats.length > 0 && (
+            <div className="heritage-stats-grid">
+              {settings.heritage_stats.map((stat, idx) => (
+                <div key={idx} className="heritage-stat-card">
+                  <div className="stat-num">{stat.num}</div>
+                  <div className="stat-sub">{stat.label}</div>
+                  <p className="stat-desc">{stat.desc}</p>
+                </div>
+              ))}
             </div>
-            <div className="heritage-stat-card">
-              <div className="stat-num">500,000+</div>
-              <div className="stat-sub">Metric Tonnes / Year</div>
-              <p className="stat-desc">Annual harvest in a good season — one of India's largest</p>
-            </div>
-            <div className="heritage-stat-card">
-              <div className="stat-num">4+</div>
-              <div className="stat-sub">Varieties Per Farm</div>
-              <p className="stat-desc">Average number of mango types grown on a single Chittoor orchard</p>
-            </div>
-            <div className="heritage-stat-card">
-              <div className="stat-num">50+</div>
-              <div className="stat-sub">Pulp Industries</div>
-              <p className="stat-desc">Processing units powered by Chittoor's Totapuri surplus</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -220,10 +205,8 @@ export const About: React.FC = () => {
       <section className="visit-booking-banner-section">
         <div className="container">
           <div className="visit-booking-banner">
-            <h2>Experience the Farm Life</h2>
-            <p>
-              Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.
-            </p>
+            <h2>{settings.visit_cta_heading}</h2>
+            <p>{settings.visit_cta_text}</p>
             <button className="btn btn-secondary" onClick={handleOpenBooking}>
               Book a farm visit
             </button>
