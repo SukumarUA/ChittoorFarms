@@ -65,11 +65,6 @@ interface ReferralSummary {
 
 const escapeCsv = (value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
-const escapeHtml = (value: string | number | null | undefined) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
 const getLocalDateValue = (dateStr: string) => {
