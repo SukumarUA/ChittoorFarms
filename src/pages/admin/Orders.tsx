@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
 const PAGE_SIZE = 50;
-import { Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, MessageSquare, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Tag, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Bell, Calendar, Check, ChevronDown, ChevronRight as ChevronRightIcon, Download, FileText, MessageSquare, Package, Phone, Printer, RotateCcw, Search, ShieldAlert, Tag, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 import { esc, logoRow, footer, wrapHtml, openPrint } from '../../lib/printUtils';
@@ -38,6 +38,9 @@ interface Order {
   discount_pct: number | null;
   discount_amount: number | null;
   original_total: number | null;
+  // Complaint tracking
+  complaint_flag: boolean;
+  complaint_note: string | null;
 }
 
 interface ProductSummary {
@@ -99,6 +102,25 @@ const waMessage = (order: Order) => {
   return `Hello ${order.customer_name}! 🌿\n\nYour Chittoor Farms order *${ref}* is confirmed.\n\nItems:\n${itemLines}\n\nTotal: ₹${order.total}\nDelivery: ${delivery}\n\nThank you for supporting local farms! 🍃`;
 };
 
+// ── New-order notification: Web Audio API chime (no external dependency) ────
+const playChime = () => {
+  try {
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    ([[880, 0], [1100, 0.13], [880, 0.26]] as [number, number][]).forEach(([freq, t]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.28);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.32);
+    });
+  } catch { /* unsupported environment */ }
+};
+
 export const Orders: React.FC = () => {
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -139,6 +161,13 @@ export const Orders: React.FC = () => {
   const [pagedOrders, setPagedOrders] = useState<Order[]>([]);
   const [pagedLoading, setPagedLoading] = useState(false);
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({ pending: 0, fulfilled: 0, failed: 0 });
+
+  // Complaint flag modal
+  const [flagModal, setFlagModal] = useState<Order | null>(null);
+  const [flagNote, setFlagNote] = useState('');
+  const [flagSaving, setFlagSaving] = useState(false);
+  // New-order badge (cleared when admin clicks the notification bell)
+  const [newOrderBadge, setNewOrderBadge] = useState(0);
 
   // Clear selection whenever the status tab changes
   useEffect(() => { setSelectedOrderIds(new Set()); }, [activeTab]);
@@ -222,11 +251,28 @@ export const Orders: React.FC = () => {
     else void fetchOrders();
   };
 
+  // Real-time handler — wraps fetch + fires chime/browser notification on INSERT
+  const rtHandlerRef = useRef<(payload: unknown) => void>(() => void 0);
+  rtHandlerRef.current = (payload) => {
+    const p = payload as { eventType?: string; new?: { customer_name?: string } };
+    if (p.eventType === 'INSERT') {
+      playChime();
+      setNewOrderBadge((n) => n + 1);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('🛒 New Order – Chittoor Farms', {
+          body: `${p.new?.customer_name ?? 'Customer'} just placed an order`,
+          icon: '/CTRFLOGO.jpeg',
+        });
+      }
+    }
+    activeFetchRef.current();
+  };
+
   // Real-time subscription — created once, always uses latest fetch
   useEffect(() => {
     const subscription = supabase
       .channel('orders-db-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => activeFetchRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (p) => rtHandlerRef.current(p))
       .subscribe((_status, err) => {
         if (err) console.error('Orders real-time subscription error:', err);
       });
@@ -415,7 +461,13 @@ export const Orders: React.FC = () => {
         order.id === selectedOrder.id ? { ...order, status: 'fulfilled', payment_mode: paymentMode, payment_amount: paidAmount, payment_reference: paymentReference.trim() || null, payment_notes: paymentNotes.trim() || null, payment_recorded_at: paymentRecordedAt } : order
       ));
       showToast('Order fulfilled and paid successfully!', 'success');
+      const fulfilledOrder = selectedOrder;
       setSelectedOrder(null);
+      // Auto-open WhatsApp to send delivery confirmation to customer
+      window.open(
+        `https://wa.me/91${fulfilledOrder.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage(fulfilledOrder))}`,
+        '_blank', 'noopener,noreferrer',
+      );
     } catch (err) {
       console.error('Error fulfilling order:', err);
       showToast('Fulfillment failed. Please check connection.', 'error');
@@ -798,6 +850,28 @@ export const Orders: React.FC = () => {
     openPrint(wrapHtml('Dispatch Sheet', body));
   };
 
+  // ── Complaint flag: toggle on/off with optional note ─────────────────────
+  const handleFlagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!flagModal) return;
+    setFlagSaving(true);
+    try {
+      const newFlag = !flagModal.complaint_flag;
+      const { error } = await supabase.from('orders').update({
+        complaint_flag: newFlag,
+        complaint_note: newFlag ? (flagNote.trim() || null) : null,
+      }).eq('id', flagModal.id);
+      if (error) throw error;
+      showToast(newFlag ? 'Issue flagged on order.' : 'Flag cleared.', newFlag ? 'warning' : 'success');
+      setFlagModal(null);
+      activeFetchRef.current();
+    } catch {
+      showToast('Failed to update complaint flag.', 'error');
+    } finally {
+      setFlagSaving(false);
+    }
+  };
+
   // ── Shared filter toolbar ─────────────────────────────────────────────────
   const FilterToolbar = () => (
     <div className="orders-toolbar">
@@ -853,6 +927,23 @@ export const Orders: React.FC = () => {
               </button>
             </div>
             <div className="orders-export-actions">
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ position: 'relative' }}
+                title={('Notification' in window && Notification.permission === 'granted') ? 'Notifications on — click to clear badge' : 'Enable order alerts'}
+                onClick={() => {
+                  if ('Notification' in window && Notification.permission !== 'granted') void Notification.requestPermission();
+                  setNewOrderBadge(0);
+                }}
+              >
+                <Bell size={16} style={{ color: ('Notification' in window && Notification.permission === 'granted') ? 'var(--success)' : undefined }} />
+                {newOrderBadge > 0 && (
+                  <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: 'var(--danger)', color: '#fff', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 700, minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                    {newOrderBadge}
+                  </span>
+                )}
+              </button>
               <button type="button" className="btn btn-outline" onClick={printDispatchSheet} disabled={!baseFilteredOrders.filter((o) => o.status === 'pending').length} title="Print dispatch sheet"><Printer size={16} /> Dispatch Sheet</button>
               <button type="button" className="btn btn-outline" onClick={exportPdf} disabled={!pagedOrders.length}><FileText size={16} /> Export PDF</button>
               <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!pagedOrders.length}><Download size={16} /> Export CSV</button>
@@ -906,7 +997,7 @@ export const Orders: React.FC = () => {
                     const codeLabel = order.referral_code || order.promo_code;
                     const isSelected = selectedOrderIds.has(order.id);
                     return (
-                      <tr key={order.id} style={isSelected ? { background: 'rgba(23,99,63,0.06)' } : undefined}>
+                      <tr key={order.id} style={{ ...(isSelected ? { background: 'rgba(23,99,63,0.06)' } : {}), ...(order.complaint_flag ? { borderLeft: '3px solid #dc2626' } : {}) }}>
                         {activeTab === 'pending' && (
                           <td style={{ textAlign: 'center', width: '2.5rem' }}>
                             <input
@@ -1023,12 +1114,29 @@ export const Orders: React.FC = () => {
                                   style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                                   aria-label={`WhatsApp ${order.customer_name}`}
                                 ><MessageSquare size={16} /></a>
+                                <button
+                                  className="btn-icon"
+                                  onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
+                                  title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue reported'}` : 'Flag a quality/delivery issue'}
+                                  style={{ color: order.complaint_flag ? '#dc2626' : 'var(--text-muted)' }}
+                                  aria-label={order.complaint_flag ? 'Clear issue flag' : 'Flag issue'}
+                                >
+                                  <AlertTriangle size={16} />
+                                </button>
                               </>
                             )}
                             {order.status === 'fulfilled' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>✓ Fulfilled</span>
                                 <button className="btn-icon" onClick={() => printReceipt(order)} title="Print Customer Receipt" style={{ color: 'var(--text-muted)' }}><Printer size={15} /></button>
+                                <button
+                                  className="btn-icon"
+                                  onClick={() => { setFlagModal(order); setFlagNote(order.complaint_note || ''); }}
+                                  title={order.complaint_flag ? `Flagged: ${order.complaint_note || 'issue'}` : 'Flag a quality issue'}
+                                  style={{ color: order.complaint_flag ? '#dc2626' : 'var(--text-muted)' }}
+                                >
+                                  <AlertTriangle size={15} />
+                                </button>
                               </div>
                             )}
                             {order.status === 'failed' && (
@@ -1428,6 +1536,53 @@ export const Orders: React.FC = () => {
             title="Clear selection"
             aria-label="Clear selection"
           ><X size={16} /></button>
+        </div>
+      )}
+
+      {/* Complaint Flag Modal */}
+      {flagModal && (
+        <div className="modal-backdrop open" onClick={() => setFlagModal(null)}>
+          <div className="modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: flagModal.complaint_flag ? 'var(--success)' : '#dc2626' }}>
+                <AlertTriangle size={20} />
+                {flagModal.complaint_flag ? 'Clear Issue Flag' : 'Flag an Issue'}
+              </h3>
+              <button className="btn-icon" onClick={() => setFlagModal(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleFlagSubmit}>
+              <div className="modal-body">
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-muted)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>
+                  <strong>{flagModal.order_number || flagModal.id.slice(0, 8).toUpperCase()}</strong> · {flagModal.customer_name}
+                </div>
+                {flagModal.complaint_flag ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    This order is currently flagged.
+                    {flagModal.complaint_note && <><br /><em style={{ color: '#374151' }}>"{flagModal.complaint_note}"</em></>}
+                    <br /><br />Confirm to clear the flag.
+                  </p>
+                ) : (
+                  <div className="form-group">
+                    <label htmlFor="flagNote">Describe the issue (optional)</label>
+                    <textarea
+                      id="flagNote"
+                      className="form-control"
+                      rows={3}
+                      placeholder="e.g. Wrong item delivered, damaged packaging, customer complaint..."
+                      value={flagNote}
+                      onChange={(e) => setFlagNote(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setFlagModal(null)} disabled={flagSaving}>Cancel</button>
+                <button type="submit" className={`btn ${flagModal.complaint_flag ? 'btn-secondary' : 'btn-danger'}`} disabled={flagSaving}>
+                  {flagSaving ? 'Saving...' : flagModal.complaint_flag ? 'Clear Flag' : 'Flag Issue'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

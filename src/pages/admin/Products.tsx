@@ -13,6 +13,7 @@ interface Product {
   price: number;
   unit: string;
   stock: number;
+  daily_stock_cap: number | null;
   image_url: string;
   sort_order: number;
   active: boolean;
@@ -39,6 +40,7 @@ export const Products: React.FC = () => {
   const [stock, setStock] = useState('0');
   const [sortOrder, setSortOrder] = useState('0');
   const [active, setActive] = useState(true);
+  const [dailyStockCap, setDailyStockCap] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
@@ -95,6 +97,7 @@ export const Products: React.FC = () => {
     setStock('0');
     setSortOrder('0');
     setActive(true);
+    setDailyStockCap('');
     setImageFile(null);
     setImagePreviewUrl('');
     setIsModalOpen(true);
@@ -111,6 +114,7 @@ export const Products: React.FC = () => {
     setStock(product.stock.toString());
     setSortOrder(product.sort_order.toString());
     setActive(product.active);
+    setDailyStockCap(product.daily_stock_cap != null ? product.daily_stock_cap.toString() : '');
     setImageFile(null);
     setImagePreviewUrl(product.image_url || '');
     setIsModalOpen(true);
@@ -186,6 +190,7 @@ export const Products: React.FC = () => {
         price: parseFloat(price),
         unit: unit.trim(),
         stock: parseFloat(stock),
+        daily_stock_cap: dailyStockCap.trim() ? parseInt(dailyStockCap) : null,
         sort_order: parseInt(sortOrder) || 0,
         active,
         image_url: finalImageUrl || null,
@@ -298,7 +303,7 @@ export const Products: React.FC = () => {
                 <th>Product Name</th>
                 <th>Category (Use)</th>
                 <th>Price / Unit</th>
-                <th>Stock Level</th>
+                <th>Stock · Daily Cap</th>
                 <th style={{ width: '100px' }}>Active</th>
                 <th>Sort Order</th>
                 <th style={{ width: '120px' }}>Actions</th>
@@ -334,11 +339,16 @@ export const Products: React.FC = () => {
                   {/* Price */}
                   <td style={{ fontWeight: 600 }}>₹{product.price} / {product.unit}</td>
 
-                  {/* Stock */}
+                  {/* Stock · Daily Cap */}
                   <td>
                     <span style={{ fontWeight: 700, color: product.stock === 0 ? 'var(--danger)' : product.stock <= 5 ? 'var(--warning)' : 'var(--success)' }}>
                       {product.stock} {product.unit.split(' ').pop()}
                     </span>
+                    {product.daily_stock_cap != null && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        Cap: {product.daily_stock_cap} / day
+                      </div>
+                    )}
                   </td>
 
                   {/* Active Toggle switch */}
@@ -546,6 +556,20 @@ export const Products: React.FC = () => {
                       onChange={(e) => setSortOrder(e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="prodDailyCap">Daily Stock Cap (optional)</label>
+                  <input
+                    type="number"
+                    id="prodDailyCap"
+                    className="form-control"
+                    placeholder="Max units to sell today (leave blank = unlimited)"
+                    value={dailyStockCap}
+                    onChange={(e) => setDailyStockCap(e.target.value)}
+                    min="0"
+                  />
+                  <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Set a today-only limit to prevent over-orders on limited harvest days</small>
                 </div>
 
                 <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>

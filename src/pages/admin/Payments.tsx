@@ -18,6 +18,7 @@ interface PaymentRecord {
   payment_reference: string | null;
   payment_notes: string | null;
   payment_recorded_at: string | null;
+  cash_collected_by: string | null;
 }
 
 const paymentModes: PaymentMode[] = ['UPI', 'Cash on delivery', 'Bank transfer', 'Card'];
@@ -38,13 +39,17 @@ export const Payments: React.FC = () => {
   const [editReference, setEditReference] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  // COD cash collection tracking
+  const [collectingId, setCollectingId] = useState<string | null>(null);
+  const [collectorName, setCollectorName] = useState('');
+  const [collectSaving, setCollectSaving] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, created_at, customer_name, phone, total, payment_mode, payment_amount, payment_reference, payment_notes, payment_recorded_at')
+        .select('id, order_number, created_at, customer_name, phone, total, payment_mode, payment_amount, payment_reference, payment_notes, payment_recorded_at, cash_collected_by')
         .eq('status', 'fulfilled')
         .order('payment_recorded_at', { ascending: false, nullsFirst: false });
 
@@ -115,6 +120,24 @@ export const Payments: React.FC = () => {
       showToast('Could not update payment record.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const markCashCollected = async (paymentId: string) => {
+    const name = collectorName.trim();
+    if (!name) { showToast('Enter the collector name.', 'error'); return; }
+    setCollectSaving(true);
+    try {
+      const { error } = await supabase.from('orders').update({ cash_collected_by: name }).eq('id', paymentId);
+      if (error) throw error;
+      showToast(`Cash marked as collected by ${name}.`, 'success');
+      setCollectingId(null);
+      setCollectorName('');
+      await fetchPayments();
+    } catch {
+      showToast('Failed to update cash collection.', 'error');
+    } finally {
+      setCollectSaving(false);
     }
   };
 
@@ -232,11 +255,42 @@ export const Payments: React.FC = () => {
             <thead><tr><th>Order</th><th>Payment Date</th><th>Customer</th><th>Mode</th><th>Order Total</th><th>Paid</th><th>Balance</th><th>Reference</th><th>Actions</th></tr></thead>
             <tbody>{filteredPayments.map((payment) => {
               const balance = Math.max(0, Number(payment.total) - Number(payment.payment_amount || 0));
+              const isCod = payment.payment_mode === 'Cash on delivery';
+              const isCollecting = collectingId === payment.id;
               return <tr key={payment.id}>
                 <td className="payment-order-ref">{payment.order_number || payment.id.slice(0, 8).toUpperCase()}</td>
                 <td>{new Date(payment.payment_recorded_at || payment.created_at).toLocaleDateString('en-IN')}</td>
                 <td><strong>{payment.customer_name}</strong><small>{payment.phone}</small></td>
-                <td><span className="badge badge-fulfilled">{payment.payment_mode || 'Not set'}</span></td>
+                <td>
+                  <span className="badge badge-fulfilled">{payment.payment_mode || 'Not set'}</span>
+                  {isCod && (
+                    <div style={{ marginTop: '0.3rem' }}>
+                      {payment.cash_collected_by ? (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 600 }}>✓ {payment.cash_collected_by}</span>
+                      ) : isCollecting ? (
+                        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                          <input
+                            autoFocus
+                            className="form-control"
+                            style={{ padding: '0.2rem 0.4rem', fontSize: '0.78rem', width: '100px' }}
+                            placeholder="Collector name"
+                            value={collectorName}
+                            onChange={(event) => setCollectorName(event.target.value)}
+                            onKeyDown={(event) => { if (event.key === 'Enter') void markCashCollected(payment.id); if (event.key === 'Escape') setCollectingId(null); }}
+                          />
+                          <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} disabled={collectSaving} onClick={() => void markCashCollected(payment.id)}>✓</button>
+                          <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => setCollectingId(null)}>✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn btn-outline"
+                          style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', color: 'var(--warning)', borderColor: 'var(--warning)' }}
+                          onClick={() => { setCollectingId(payment.id); setCollectorName(''); }}
+                        >Mark Collected</button>
+                      )}
+                    </div>
+                  )}
+                </td>
                 <td>₹{Number(payment.total).toLocaleString('en-IN')}</td>
                 <td className="payment-paid">₹{Number(payment.payment_amount || 0).toLocaleString('en-IN')}</td>
                 <td className={balance > 0 ? 'payment-balance' : ''}>₹{balance.toLocaleString('en-IN')}</td>
