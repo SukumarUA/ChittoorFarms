@@ -98,8 +98,7 @@ const ageBadge = (createdAt: string): { label: string; color: string; bg: string
 const waMessage = (order: Order) => {
   const ref = order.order_number || order.id.slice(0, 8).toUpperCase();
   const itemLines = order.items.map((it) => `• ${it.name} × ${it.quantity}${it.unit.replace(/^1\s*/, '')}`).join('\n');
-  const delivery = order.preferred_delivery_date || 'ASAP';
-  return `Hello ${order.customer_name}! 🌿\n\nYour Chittoor Farms order *${ref}* is confirmed.\n\nItems:\n${itemLines}\n\nTotal: ₹${order.total}\nDelivery: ${delivery}\n\nThank you for supporting local farms! 🍃`;
+  return `Hello ${order.customer_name}! 🌿\n\nYour Chittoor Farms order *${ref}* is confirmed.\n\nItems:\n${itemLines}\n\nTotal: ₹${order.total}\n\nWe will deliver your order with our next delivery batch — we'll reach out once it's on the way! 🚚\n\nThank you for supporting local farms! 🍃`;
 };
 
 // ── New-order notification: Web Audio API chime (no external dependency) ────
