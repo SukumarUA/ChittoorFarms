@@ -142,22 +142,19 @@ export const About: React.FC = () => {
       <section className="heritage-section">
         <div className="container">
           <div className="heritage-intro">
-            <span className="heritage-badge">• CHITTOOR, INDIA'S MANGO PARADISE •</span>
-            <h2 className="heritage-title">Discover Chittoor's Mango Cultivation Heritage</h2>
+            {settings.heritage_badge && (
+              <span className="heritage-badge">{settings.heritage_badge}</span>
+            )}
+            <h2 className="heritage-title">{settings.heritage_title}</h2>
           </div>
 
-          <div className="heritage-grid">
-            <div className="heritage-col">
-              <p>Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.</p>
-              <p>Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.</p>
-              <p>While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.</p>
+          {settings.heritage_body && (
+            <div className="heritage-body">
+              {settings.heritage_body.split('\n\n').filter(Boolean).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
             </div>
-            <div className="heritage-col">
-              <p>What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.</p>
-              <p>To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.</p>
-              <p>However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly—ensuring fair profits reach the growers while enjoying premium, naturally ripened fruit delivered straight to your home.</p>
-            </div>
-          </div>
+          )}
 
           {settings.heritage_stats.length > 0 && (
             <div className="heritage-stats-grid">

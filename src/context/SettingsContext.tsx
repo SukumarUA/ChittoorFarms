@@ -33,6 +33,10 @@ export interface SiteSettings {
   // About — story
   about_story_heading: string;
   about_story_body: string;
+  // About — heritage section
+  heritage_badge: string;
+  heritage_title: string;
+  heritage_body: string;
   // About — visit CTA
   visit_cta_heading: string;
   visit_cta_text: string;
@@ -64,6 +68,16 @@ const DEFAULTS: SiteSettings = {
   about_story_heading: 'Connecting You to the Soil',
   about_story_body:
     "Chittoor district in Andhra Pradesh is renowned for producing some of India's finest mango varieties, yet traditional supply chains keep growers impoverished and customers eating chemically-ripened, stale fruit.<br/><br/>Chittoor Farms was founded to fix this. We work directly with verified family orchards, cut out every middleman, and deliver naturally ripened mangoes to your door within hours of harvest.",
+  heritage_badge: "• CHITTOOR, INDIA'S MANGO PARADISE •",
+  heritage_title: "Discover Chittoor's Mango Cultivation Heritage",
+  heritage_body: [
+    "Chittoor district in Andhra Pradesh is a powerhouse of premium mango cultivation. Armed with decades of local expertise, our farmers have perfected the art of nurturing orchards on nutrient-rich red laterite soils, passing down specialized grafting and cultivation techniques across generations.",
+    "Today, Chittoor stands as the state's largest mango-producing belt, with 100,000+ acres dedicated to orchards. In a peak season, these orchards yield close to 500,000+ metric tonnes of high-quality fruit, cementing the region's position as a major leader in India's mango market.",
+    "While the signature Totapuri mango powers 50+ pulp processing units supplying juice globally, the region is celebrated for its diversity. Premium table varieties like Banganapalli, Neelum, Imam Pasand, Sindhura, and Mallika all thrive side-by-side in these fertile orchards.",
+    "What sets Chittoor farms apart is their smart multi-variety orchard tradition. Growing 4+ distinct mango varieties together naturally extends the harvest season, enhances cross-pollination, and preserves rare heritage strains that are hard to find anywhere else.",
+    "To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.",
+    "However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly — ensuring fair profits reach the growers while enjoying premium, naturally ripened produce delivered straight to your home.",
+  ].join('\n\n'),
   visit_cta_heading: 'Visit a Real Mango Orchard',
   visit_cta_text:
     'Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.',
@@ -127,6 +141,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             footer_tagline:        data.footer_tagline        || DEFAULTS.footer_tagline,
             about_story_heading:   data.about_story_heading   || DEFAULTS.about_story_heading,
             about_story_body:      data.about_story_body      || DEFAULTS.about_story_body,
+            heritage_badge:        data.heritage_badge        || DEFAULTS.heritage_badge,
+            heritage_title:        data.heritage_title        || DEFAULTS.heritage_title,
+            heritage_body:         data.heritage_body         || DEFAULTS.heritage_body,
             visit_cta_heading:     data.visit_cta_heading     || DEFAULTS.visit_cta_heading,
             visit_cta_text:        data.visit_cta_text        || DEFAULTS.visit_cta_text,
             features_heading:      data.features_heading      || DEFAULTS.features_heading,

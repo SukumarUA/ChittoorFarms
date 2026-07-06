@@ -42,6 +42,10 @@ interface CmsSettings {
   // About — story
   about_story_heading: string;
   about_story_body: string;
+  // About — heritage section
+  heritage_badge: string;
+  heritage_title: string;
+  heritage_body: string;
   // About — visit CTA
   visit_cta_heading: string;
   visit_cta_text: string;
@@ -102,7 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'ABOUT PAGE', color: '#16a34a', group: 'about',
     items: [
       { id: 'sec-story',    label: 'Our Story',      Icon: BookOpen  },
-      { id: 'sec-heritage', label: 'Heritage Stats', Icon: BarChart3 },
+      { id: 'sec-heritage', label: 'Heritage Section', Icon: BarChart3 },
       { id: 'sec-visit',    label: 'Visit CTA',      Icon: MapPin    },
     ],
   },
@@ -168,6 +172,7 @@ const emptySettings: CmsSettings = {
   social_facebook: '', social_instagram: '', social_twitter: '', social_youtube: '',
   contact_phone: '', contact_email: '', contact_address: '', footer_tagline: '',
   about_story_heading: '', about_story_body: '',
+  heritage_badge: '', heritage_title: '', heritage_body: '',
   visit_cta_heading: '', visit_cta_text: '',
   features_heading: '', features_subtext: '', feature_cards: [], heritage_stats: [],
   team: [], categories: [], farm_types: [], use_categories: [],
@@ -261,6 +266,9 @@ export const CMS: React.FC = () => {
         footer_tagline:      data.footer_tagline      || '',
         about_story_heading: data.about_story_heading || '',
         about_story_body:    data.about_story_body    || '',
+        heritage_badge:      data.heritage_badge      || '',
+        heritage_title:      data.heritage_title      || '',
+        heritage_body:       data.heritage_body       || '',
         visit_cta_heading:   data.visit_cta_heading   || '',
         visit_cta_text:      data.visit_cta_text      || '',
         features_heading:    data.features_heading    || '',
@@ -307,6 +315,9 @@ export const CMS: React.FC = () => {
           footer_tagline:      s.footer_tagline.trim(),
           about_story_heading: s.about_story_heading.trim(),
           about_story_body:    s.about_story_body.trim(),
+          heritage_badge:      s.heritage_badge.trim(),
+          heritage_title:      s.heritage_title.trim(),
+          heritage_body:       s.heritage_body.trim(),
           visit_cta_heading:   s.visit_cta_heading.trim(),
           visit_cta_text:      s.visit_cta_text.trim(),
           features_heading:    s.features_heading.trim(),
@@ -750,8 +761,8 @@ export const CMS: React.FC = () => {
             <div className="cms-panel">
               <PanelHeader
                 id="sec-heritage"
-                title="Heritage Stats"
-                desc="The large-number stat cards on the About page. Update each season."
+                title="Heritage Section"
+                desc="The full-bleed heritage section on the About page — badge, title, body text, and stat cards."
                 action={
                   <button type="button" className="btn btn-outline" onClick={addHeritageStat}>
                     <Plus size={14} /> Add Stat
@@ -759,6 +770,39 @@ export const CMS: React.FC = () => {
                 }
               />
               <div className="cms-panel-body">
+                {/* Badge & Title */}
+                <div className="form-group">
+                  <label>Section Badge</label>
+                  <input
+                    className="form-control"
+                    value={settings.heritage_badge}
+                    onChange={(e) => set({ heritage_badge: e.target.value })}
+                    placeholder="e.g. • CHITTOOR, INDIA'S MANGO PARADISE •"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Section Title</label>
+                  <input
+                    className="form-control"
+                    value={settings.heritage_title}
+                    onChange={(e) => set({ heritage_title: e.target.value })}
+                    placeholder="e.g. Discover Chittoor's Mango Cultivation Heritage"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Body Text</label>
+                  <p className="cms-field-hint">Each paragraph on a new blank line (press Enter twice between paragraphs).</p>
+                  <textarea
+                    className="form-control"
+                    rows={12}
+                    value={settings.heritage_body}
+                    onChange={(e) => set({ heritage_body: e.target.value })}
+                    placeholder="Write the heritage section body text here. Separate paragraphs with a blank line."
+                    style={{ fontFamily: 'inherit', lineHeight: 1.7 }}
+                  />
+                </div>
+                <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '1rem' }}>Stat Cards</p>
                 <div className="cms-stat-grid">
                   {settings.heritage_stats.map((stat, i) => (
                     <div key={i} className="cms-stat-editor">
