@@ -216,8 +216,6 @@ export const CMS: React.FC = () => {
   const [isDirty,  setIsDirty]  = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Two-level nav state
-  const [activeGroup,   setActiveGroup]   = useState<string>('HOMEPAGE');
   const [activeSection, setActiveSection] = useState<string>('sec-homepage');
 
   // Chip-add inputs
@@ -450,10 +448,6 @@ export const CMS: React.FC = () => {
     }
   };
 
-  // ── Tab nav helpers ───────────────────────────────────────────────────────
-
-  const currentGroup = NAV_GROUPS.find((g) => g.items.some((i) => i.id === activeSection)) ?? NAV_GROUPS[0];
-
   // ─────────────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -482,7 +476,7 @@ export const CMS: React.FC = () => {
                     type="button"
                     className={`cms-tab${isActive ? ' active' : ''}`}
                     style={isActive ? { color: group.color, borderBottomColor: group.color } : undefined}
-                    onClick={() => { setActiveSection(item.id); setActiveGroup(group.label); }}
+                    onClick={() => setActiveSection(item.id)}
                   >
                     <item.Icon size={13} />
                     <span>{item.label}</span>
