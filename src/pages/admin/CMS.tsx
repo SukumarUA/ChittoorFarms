@@ -452,12 +452,7 @@ export const CMS: React.FC = () => {
 
   // ── Tab nav helpers ───────────────────────────────────────────────────────
 
-  const currentGroup = NAV_GROUPS.find((g) => g.label === activeGroup) ?? NAV_GROUPS[0];
-
-  const selectGroup = (group: NavGroup) => {
-    setActiveGroup(group.label);
-    setActiveSection(group.items[0].id);
-  };
+  const currentGroup = NAV_GROUPS.find((g) => g.items.some((i) => i.id === activeSection)) ?? NAV_GROUPS[0];
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -472,27 +467,41 @@ export const CMS: React.FC = () => {
   return (
     <div className="cms-layout">
 
-      {/* ── Row 1: Group tabs + Save actions ──────────────────────────── */}
-      <div className="cms-group-tabs">
-        <div className="cms-group-tabs-nav">
-          {NAV_GROUPS.map((group) => {
-            const isActive = activeGroup === group.label;
-            return (
-              <button
-                key={group.label}
-                type="button"
-                className={`cms-group-tab${isActive ? ' active' : ''}`}
-                style={isActive ? { color: group.color, borderBottomColor: group.color } : undefined}
-                onClick={() => selectGroup(group)}
-              >
-                <span className="cms-group-dot" style={{ background: group.color }} />
-                {group.label}
-              </button>
-            );
-          })}
+      {/* ── Single flat tab bar ────────────────────────────────────────── */}
+      <div className="cms-tabbar">
+        <div className="cms-tabbar-nav">
+          {NAV_GROUPS.map((group, gi) => (
+            <React.Fragment key={group.label}>
+              {gi > 0 && <span className="cms-tabbar-divider" />}
+              {group.items.map((item) => {
+                const isActive = activeSection === item.id;
+                const count    = getCount(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`cms-tab${isActive ? ' active' : ''}`}
+                    style={isActive ? { color: group.color, borderBottomColor: group.color } : undefined}
+                    onClick={() => { setActiveSection(item.id); setActiveGroup(group.label); }}
+                  >
+                    <item.Icon size={13} />
+                    <span>{item.label}</span>
+                    {count !== null && (
+                      <span
+                        className="cms-nav-badge"
+                        style={isActive ? { background: group.color, color: '#fff' } : undefined}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </React.Fragment>
+          ))}
         </div>
 
-        <div className="cms-group-tabs-actions">
+        <div className="cms-tabbar-actions">
           {isDirty ? (
             <span className="cms-status-unsaved">
               <span className="cms-dirty-dot" />
@@ -511,34 +520,6 @@ export const CMS: React.FC = () => {
           </button>
           <span className="cms-shortcut-hint"><kbd>⌘S</kbd></span>
         </div>
-      </div>
-
-      {/* ── Row 2: Section tabs within active group ────────────────────── */}
-      <div className="cms-section-tabs">
-        {currentGroup.items.map((item) => {
-          const isActive = activeSection === item.id;
-          const count    = getCount(item.id);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`cms-section-tab${isActive ? ' active' : ''}`}
-              style={isActive ? { color: currentGroup.color, borderBottomColor: currentGroup.color } : undefined}
-              onClick={() => setActiveSection(item.id)}
-            >
-              <item.Icon size={14} />
-              {item.label}
-              {count !== null && (
-                <span
-                  className="cms-nav-badge"
-                  style={isActive ? { background: currentGroup.color, color: '#fff' } : undefined}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
       </div>
 
       {/* ── Content: only the active section ──────────────────────────── */}
