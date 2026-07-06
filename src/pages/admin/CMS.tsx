@@ -512,7 +512,6 @@ export const CMS: React.FC = () => {
           >
             <Save size={14} /> {saving ? 'Saving…' : 'Save'}
           </button>
-          <span className="cms-shortcut-hint"><kbd>⌘S</kbd></span>
         </div>
       </div>
 
