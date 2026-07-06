@@ -215,7 +215,10 @@ export const CMS: React.FC = () => {
   const [saving,   setSaving]   = useState(false);
   const [isDirty,  setIsDirty]  = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [activeSection, setActiveSection] = useState('sec-homepage');
+
+  // Two-level nav state
+  const [activeGroup,   setActiveGroup]   = useState<string>('HOMEPAGE');
+  const [activeSection, setActiveSection] = useState<string>('sec-homepage');
 
   // Chip-add inputs
   const [newCategory,    setNewCategory]    = useState('');
@@ -232,24 +235,6 @@ export const CMS: React.FC = () => {
     setIsDirty(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, notices]);
-
-  // ── IntersectionObserver for sidebar nav highlight ────────────────────────
-  useEffect(() => {
-    if (loading) return;
-    const allIds = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.id));
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.find((e) => e.isIntersecting);
-        if (visible) setActiveSection(visible.target.id);
-      },
-      { rootMargin: '-10% 0px -75% 0px' },
-    );
-    allIds.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [loading]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -303,8 +288,6 @@ export const CMS: React.FC = () => {
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
-  // doSave is a plain async fn (not useCallback) — always fresh closure.
-  // We keep a ref so the ⌘S handler always calls the latest version.
   const doSave = async (s: CmsSettings, n: NoticeItem[]) => {
     setSaving(true);
     try {
@@ -363,9 +346,9 @@ export const CMS: React.FC = () => {
   };
 
   // ── ⌘S / Ctrl+S keyboard shortcut ────────────────────────────────────────
-  const savingRef = useRef(saving);
+  const savingRef  = useRef(saving);
   const loadingRef = useRef(loading);
-  useEffect(() => { savingRef.current = saving; },   [saving]);
+  useEffect(() => { savingRef.current  = saving;  }, [saving]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
   useEffect(() => {
@@ -467,10 +450,14 @@ export const CMS: React.FC = () => {
     }
   };
 
-  // ── Scroll helper ─────────────────────────────────────────────────────────
+  // ── Tab nav helpers ───────────────────────────────────────────────────────
 
-  const scrollTo = (id: string) =>
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const currentGroup = NAV_GROUPS.find((g) => g.label === activeGroup) ?? NAV_GROUPS[0];
+
+  const selectGroup = (group: NavGroup) => {
+    setActiveGroup(group.label);
+    setActiveSection(group.items[0].id);
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -485,73 +472,82 @@ export const CMS: React.FC = () => {
   return (
     <div className="cms-layout">
 
-        {/* ── Sidebar ── */}
-        <aside className="cms-sidebar">
-          <div className="cms-sidebar-header">
-            <span className="cms-sidebar-title">Sections</span>
-            {isDirty && <span className="cms-dirty-dot" title="Unsaved changes" />}
-          </div>
+      {/* ── Row 1: Group tabs + Save actions ──────────────────────────── */}
+      <div className="cms-group-tabs">
+        <div className="cms-group-tabs-nav">
+          {NAV_GROUPS.map((group) => {
+            const isActive = activeGroup === group.label;
+            return (
+              <button
+                key={group.label}
+                type="button"
+                className={`cms-group-tab${isActive ? ' active' : ''}`}
+                style={isActive ? { color: group.color, borderBottomColor: group.color } : undefined}
+                onClick={() => selectGroup(group)}
+              >
+                <span className="cms-group-dot" style={{ background: group.color }} />
+                {group.label}
+              </button>
+            );
+          })}
+        </div>
 
-          <nav className="cms-nav">
-            {NAV_GROUPS.map((group) => (
-              <div className="cms-nav-group" key={group.label}>
-                <div className="cms-nav-group-label">
-                  <span className="cms-nav-group-dot" style={{ background: group.color }} />
-                  {group.label}
-                </div>
-                {group.items.map((item) => {
-                  const isActive = activeSection === item.id;
-                  const count    = getCount(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`cms-nav-item ${isActive ? 'active' : ''}`}
-                      style={isActive
-                        ? { borderLeftColor: group.color, color: group.color, background: `color-mix(in srgb, ${group.color} 8%, transparent)` }
-                        : undefined}
-                      onClick={() => scrollTo(item.id)}
-                    >
-                      <span className="cms-nav-item-inner">
-                        <item.Icon size={14} />
-                        <span className="cms-nav-item-label">{item.label}</span>
-                        {count !== null && (
-                          <span
-                            className="cms-nav-badge"
-                            style={isActive ? { background: group.color, color: '#fff' } : undefined}
-                          >
-                            {count}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </nav>
+        <div className="cms-group-tabs-actions">
+          {isDirty ? (
+            <span className="cms-status-unsaved">
+              <span className="cms-dirty-dot" />
+              Unsaved
+            </span>
+          ) : lastSaved ? (
+            <span className="cms-status-saved">✓ {fmtSaveTime(lastSaved)}</span>
+          ) : null}
+          <button
+            form="cms-form"
+            type="submit"
+            className="btn btn-secondary cms-save-btn-inline"
+            disabled={saving}
+          >
+            <Save size={14} /> {saving ? 'Saving…' : 'Save'}
+          </button>
+          <span className="cms-shortcut-hint"><kbd>⌘S</kbd></span>
+        </div>
+      </div>
 
-          <div className="cms-sidebar-save">
-            <button form="cms-form" type="submit" className="btn btn-secondary cms-save-btn" disabled={saving}>
-              <Save size={15} /> {saving ? 'Saving…' : 'Save All Changes'}
+      {/* ── Row 2: Section tabs within active group ────────────────────── */}
+      <div className="cms-section-tabs">
+        {currentGroup.items.map((item) => {
+          const isActive = activeSection === item.id;
+          const count    = getCount(item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`cms-section-tab${isActive ? ' active' : ''}`}
+              style={isActive ? { color: currentGroup.color, borderBottomColor: currentGroup.color } : undefined}
+              onClick={() => setActiveSection(item.id)}
+            >
+              <item.Icon size={14} />
+              {item.label}
+              {count !== null && (
+                <span
+                  className="cms-nav-badge"
+                  style={isActive ? { background: currentGroup.color, color: '#fff' } : undefined}
+                >
+                  {count}
+                </span>
+              )}
             </button>
-            {isDirty ? (
-              <p className="cms-unsaved-note">● Unsaved changes</p>
-            ) : lastSaved ? (
-              <p className="cms-saved-note">✓ Saved {fmtSaveTime(lastSaved)}</p>
-            ) : (
-              <p className="cms-saved-note">✓ All changes saved</p>
-            )}
-            <p className="cms-sidebar-shortcut-hint"><kbd>⌘S</kbd> saves instantly</p>
-          </div>
-        </aside>
+          );
+        })}
+      </div>
 
-        {/* ── Main Content ─────────────────────────────────────────────── */}
-        <main className="cms-main">
-          <form id="cms-form" onSubmit={handleSave}>
+      {/* ── Content: only the active section ──────────────────────────── */}
+      <main className="cms-main">
+        <form id="cms-form" onSubmit={handleSave}>
 
-            {/* ── 1. Homepage Hero ───────────────────────────────────────── */}
-            <section id="sec-homepage" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 1. Homepage Hero ──────────────────────────────────────── */}
+          {activeSection === 'sec-homepage' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-homepage"
                 title="Homepage Hero"
@@ -605,10 +601,12 @@ export const CMS: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 2. Notice Board ────────────────────────────────────────── */}
-            <section id="sec-notices" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 2. Notice Board ───────────────────────────────────────── */}
+          {activeSection === 'sec-notices' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-notices"
                 title="Notice Board"
@@ -650,10 +648,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 3. Why Chittoor Farms ──────────────────────────────────── */}
-            <section id="sec-features" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 3. Why Chittoor Farms ─────────────────────────────────── */}
+          {activeSection === 'sec-features' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-features"
                 title="Why Chittoor Farms"
@@ -734,10 +734,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 4. Our Story ───────────────────────────────────────────── */}
-            <section id="sec-story" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 4. Our Story ──────────────────────────────────────────── */}
+          {activeSection === 'sec-story' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-story"
                 title="Our Story"
@@ -766,10 +768,12 @@ export const CMS: React.FC = () => {
                   <small>Use <code>{'<br/>'}</code> for paragraph breaks. Rendered as HTML on the About page.</small>
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 5. Heritage Stats ──────────────────────────────────────── */}
-            <section id="sec-heritage" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 5. Heritage Stats ─────────────────────────────────────── */}
+          {activeSection === 'sec-heritage' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-heritage"
                 title="Heritage Stats"
@@ -826,10 +830,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 6. Visit CTA ───────────────────────────────────────────── */}
-            <section id="sec-visit" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 6. Visit CTA ──────────────────────────────────────────── */}
+          {activeSection === 'sec-visit' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-visit"
                 title="Visit CTA"
@@ -857,10 +863,12 @@ export const CMS: React.FC = () => {
                   />
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 7. Contact & Footer ────────────────────────────────────── */}
-            <section id="sec-footer" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 7. Contact & Footer ───────────────────────────────────── */}
+          {activeSection === 'sec-footer' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-footer"
                 title="Contact & Footer"
@@ -906,10 +914,12 @@ export const CMS: React.FC = () => {
                   <small>Short description shown under the brand name in the footer.</small>
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 8. Social Links ────────────────────────────────────────── */}
-            <section id="sec-social" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 8. Social Links ───────────────────────────────────────── */}
+          {activeSection === 'sec-social' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-social"
                 title="Social Links"
@@ -932,10 +942,12 @@ export const CMS: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 9. Product Categories ──────────────────────────────────── */}
-            <section id="sec-categories" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 9. Product Categories ─────────────────────────────────── */}
+          {activeSection === 'sec-categories' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-categories"
                 title="Product Categories"
@@ -968,10 +980,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 10. Farm Types ─────────────────────────────────────────── */}
-            <section id="sec-farmtypes" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 10. Farm Types ────────────────────────────────────────── */}
+          {activeSection === 'sec-farmtypes' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-farmtypes"
                 title="Farm Types"
@@ -1004,10 +1018,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 11. Mango Use Categories ───────────────────────────────── */}
-            <section id="sec-usecat" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 11. Mango Use Categories ──────────────────────────────── */}
+          {activeSection === 'sec-usecat' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-usecat"
                 title="Mango Use Categories"
@@ -1042,10 +1058,12 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            {/* ── 12. Team Members ───────────────────────────────────────── */}
-            <section id="sec-team" className="cms-panel" style={{ scrollMarginTop: '5rem' }}>
+          {/* ── 12. Team Members ──────────────────────────────────────── */}
+          {activeSection === 'sec-team' && (
+            <div className="cms-panel">
               <PanelHeader
                 id="sec-team"
                 title="Team Members"
@@ -1118,10 +1136,11 @@ export const CMS: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-          </form>
-        </main>
-      </div>
+        </form>
+      </main>
+    </div>
   );
 };
