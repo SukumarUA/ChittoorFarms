@@ -230,7 +230,7 @@ export const Home: React.FC = () => {
               <p>Skip the cart and message our operations desk directly to place your order.</p>
             </div>
             <a
-              href={`https://wa.me/${waNumber}?text=Hi!%20I%20want%20to%20order%20mangoes.`}
+              href={`https://wa.me/${waNumber}?text=Hi!%20I%20want%20to%20place%20an%20order.`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary whatsapp-btn"

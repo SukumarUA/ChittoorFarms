@@ -187,7 +187,7 @@ export const Products: React.FC = () => {
       const productPayload = {
         name: name.trim(),
         category,
-        use: category === 'Mangoes' ? use : null,
+        use: use || null,
         description: description.trim() || null,
         price: parseFloat(price),
         unit: unit.trim(),
@@ -330,7 +330,7 @@ export const Products: React.FC = () => {
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                       <span style={{ fontWeight: 600 }}>{product.category}</span>
-                      {product.category === 'Mangoes' && product.use && (
+                      {product.use && (
                         <span className={`badge badge-${product.use}`} style={{ alignSelf: 'flex-start', fontSize: '0.7rem' }}>
                           {product.use}
                         </span>
@@ -401,7 +401,7 @@ export const Products: React.FC = () => {
         <div className="modal-backdrop open" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editTarget ? 'Edit Mango Variety' : 'Add Mango Variety'}</h3>
+              <h3>{editTarget ? 'Edit Product' : 'Add Product'}</h3>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)}>
                 <X size={20} />
               </button>
