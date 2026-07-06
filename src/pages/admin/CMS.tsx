@@ -118,7 +118,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'sec-categories', label: 'Product Categories', Icon: Tag      },
       { id: 'sec-farmtypes',  label: 'Farm Types',          Icon: TreePine },
-      { id: 'sec-usecat',     label: 'Mango Use Types',     Icon: Sprout   },
+      { id: 'sec-usecat',     label: 'Use Categories',      Icon: Sprout   },
     ],
   },
   {
@@ -996,18 +996,18 @@ export const CMS: React.FC = () => {
             </div>
           )}
 
-          {/* ── 11. Mango Use Categories ──────────────────────────────── */}
+          {/* ── 11. Use Categories ───────────────────────────────────── */}
           {activeSection === 'sec-usecat' && (
             <div className="cms-panel">
               <PanelHeader
                 id="sec-usecat"
-                title="Mango Use Categories"
-                desc='Options in the "Primary Use Category" dropdown when adding or editing a Mango product.'
+                title="Use Categories"
+                desc='Options in the "Primary Use Category" dropdown when adding or editing any product (e.g. Fresh Eating, Pickling, Juicing, Export).'
               />
               <div className="cms-panel-body">
                 <div className="cms-add-row">
                   <input
-                    className="form-control" placeholder="e.g. Fresh (Table Eating)"
+                    className="form-control" placeholder="e.g. Fresh Eating, Pickling, Export, Juicing"
                     value={newUseCategory}
                     onChange={(e) => setNewUseCategory(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addChip('use_categories', newUseCategory); setNewUseCategory(''); } }}
@@ -1020,7 +1020,7 @@ export const CMS: React.FC = () => {
                 <div className="cms-category-list" style={{ marginTop: '0.75rem' }}>
                   {settings.use_categories.length === 0 && (
                     <p style={{ fontSize: '0.85rem', color: 'var(--warning)' }}>
-                      No use categories configured — add at least one so Mango products can be categorised.
+                      No use categories yet — add at least one so products can be categorised by intended use.
                     </p>
                   )}
                   {settings.use_categories.map((uc) => (

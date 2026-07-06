@@ -476,31 +476,29 @@ export const Products: React.FC = () => {
                   </select>
                 </div>
 
-                {category === 'Mangoes' && (
-                  <div className="form-group">
-                    <label htmlFor="prodUse">Primary Use Category *</label>
-                    <select
-                      id="prodUse"
-                      className="form-control"
-                      value={use}
-                      onChange={(e) => setUse(e.target.value)}
-                      required
-                    >
-                      {useCategories.length === 0 ? (
-                        <option value="">— No options configured in CMS —</option>
-                      ) : (
-                        useCategories.map((uc) => (
-                          <option key={uc} value={uc}>{uc}</option>
-                        ))
-                      )}
-                    </select>
-                    {useCategories.length === 0 && (
-                      <small style={{ color: 'var(--warning)' }}>
-                        Go to CMS → Primary Use Categories to add options.
-                      </small>
+                <div className="form-group">
+                  <label htmlFor="prodUse">Primary Use Category *</label>
+                  <select
+                    id="prodUse"
+                    className="form-control"
+                    value={use}
+                    onChange={(e) => setUse(e.target.value)}
+                    required
+                  >
+                    {useCategories.length === 0 ? (
+                      <option value="">— No options configured in CMS —</option>
+                    ) : (
+                      useCategories.map((uc) => (
+                        <option key={uc} value={uc}>{uc}</option>
+                      ))
                     )}
-                  </div>
-                )}
+                  </select>
+                  {useCategories.length === 0 && (
+                    <small style={{ color: 'var(--warning)' }}>
+                      Go to CMS → Use Categories to add options.
+                    </small>
+                  )}
+                </div>
 
                 <div className="form-group">
                   <label htmlFor="prodDesc">Product Description</label>
