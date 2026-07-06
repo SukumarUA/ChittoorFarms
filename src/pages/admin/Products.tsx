@@ -443,7 +443,7 @@ export const Products: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="prodName">Variety Name *</label>
+                  <label htmlFor="prodName">Product Name *</label>
                   <input
                     type="text"
                     id="prodName"
