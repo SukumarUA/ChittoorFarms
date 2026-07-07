@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, X } from 'lucide-react';
+import { Users, X, Leaf, Truck, ShieldCheck, MapPin, Phone, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { useSettings } from '../context/SettingsContext';
@@ -23,7 +23,6 @@ export const About: React.FC = () => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form states
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [preferredFarm, setPreferredFarm] = useState('');
@@ -32,7 +31,6 @@ export const About: React.FC = () => {
   const [purpose, setPurpose] = useState('');
   const [message, setMessage] = useState('');
 
-  // Date picker limit: today or later
   const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -43,71 +41,35 @@ export const About: React.FC = () => {
           .select('team')
           .eq('id', 'main')
           .single();
-
         if (error) throw error;
-        if (data && Array.isArray(data.team)) {
-          setTeam(data.team);
-        }
+        if (data && Array.isArray(data.team)) setTeam(data.team);
       } catch (err) {
         console.error('Error fetching team settings:', err);
       }
     };
-
     fetchTeamData();
   }, []);
 
-  const handleOpenBooking = () => {
-    setIsBookingOpen(true);
-  };
-
-  const handleCloseBooking = () => {
-    setIsBookingOpen(false);
-  };
-
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validations
-    if (!name.trim()) {
-      showToast('Please enter your name.', 'error');
-      return;
-    }
-
+    if (!name.trim()) { showToast('Please enter your name.', 'error'); return; }
     const phoneDigits = phone.replace(/\D/g, '');
-    if (phoneDigits.length !== 10) {
-      showToast('Please enter a valid 10-digit mobile number.', 'error');
-      return;
-    }
-
+    if (phoneDigits.length !== 10) { showToast('Please enter a valid 10-digit mobile number.', 'error'); return; }
     setIsSubmitting(true);
-
     try {
-      const { error } = await supabase.from('visits').insert([
-        {
-          name: name.trim(),
-          phone: phoneDigits,
-          preferred_farm: preferredFarm.trim() || null,
-          preferred_date: preferredDate || null,
-          group_size: groupSize.trim() || null,
-          purpose: purpose.trim() || null,
-          message: message.trim() || null,
-          status: 'pending',
-        },
-      ]);
-
+      const { error } = await supabase.from('visits').insert([{
+        name: name.trim(), phone: phoneDigits,
+        preferred_farm: preferredFarm.trim() || null,
+        preferred_date: preferredDate || null,
+        group_size: groupSize.trim() || null,
+        purpose: purpose.trim() || null,
+        message: message.trim() || null,
+        status: 'pending',
+      }]);
       if (error) throw error;
-
       showToast('Booking requested! We will call you to confirm.', 'success');
       setIsBookingOpen(false);
-
-      // Reset form
-      setName('');
-      setPhone('');
-      setPreferredFarm('');
-      setPreferredDate('');
-      setGroupSize('');
-      setPurpose('');
-      setMessage('');
+      setName(''); setPhone(''); setPreferredFarm(''); setPreferredDate(''); setGroupSize(''); setPurpose(''); setMessage('');
     } catch (err) {
       console.error('Error submitting booking:', err);
       showToast('Failed to submit booking request. Please try again.', 'error');
@@ -119,28 +81,48 @@ export const About: React.FC = () => {
   return (
     <div className="about-page">
 
-      {/* ── Intro: Story + Logo ───────────────────────────────────────── */}
-      <section className="about-intro-section">
+      {/* ── HERO: Story + Logo ─────────────────────────────────────────── */}
+      <section className="about-hero-section">
         <div className="container">
-          <div className="about-grid">
-            <div className="about-story">
-              <h1>{settings.about_story_heading}</h1>
-              {/* Supports basic HTML like <br/> for paragraph breaks */}
-              <div dangerouslySetInnerHTML={{ __html: settings.about_story_body.replace(/<br\s*\/?>/gi, '<br/>') }} />
-            </div>
+          <div className="about-hero-grid">
 
-            <div className="about-logo-wrapper">
-              <div className="about-logo-circle">
-                <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms Logo" className="about-logo-img" loading="lazy" />
+            {/* Left — story content */}
+            <div className="about-hero-content">
+              <span className="about-eyebrow">Our Story</span>
+              <h1 className="about-hero-h1">{settings.about_story_heading}</h1>
+              <div
+                className="about-hero-body"
+                dangerouslySetInnerHTML={{ __html: settings.about_story_body.replace(/<br\s*\/?>/gi, '<br/>') }}
+              />
+              <div className="about-trust-row">
+                <span className="about-trust-chip"><Leaf size={13} /> Farm Direct</span>
+                <span className="about-trust-chip"><Truck size={13} /> No Middlemen</span>
+                <span className="about-trust-chip"><ShieldCheck size={13} /> Naturally Ripened</span>
               </div>
             </div>
+
+            {/* Right — logo visual */}
+            <div className="about-hero-visual">
+              <div className="about-logo-orbit">
+                <div className="about-logo-ring">
+                  <div className="about-logo-inner">
+                    <img src="/CTRFLOGO.jpeg" alt="Chittoor Farms" className="about-logo-img" loading="lazy" />
+                  </div>
+                </div>
+                <div className="about-logo-tag">
+                  <span>Chittoor, Andhra Pradesh</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* ── Heritage Section (full-bleed background) ─────────────────── */}
+      {/* ── HERITAGE: Dark editorial section ──────────────────────────── */}
       <section className="heritage-section">
         <div className="container">
+
           <div className="heritage-intro">
             {settings.heritage_badge && (
               <span className="heritage-badge">{settings.heritage_badge}</span>
@@ -157,27 +139,29 @@ export const About: React.FC = () => {
           )}
 
           {settings.heritage_stats.length > 0 && (
-            <div className="heritage-stats-grid">
+            <div className="heritage-stats-row">
               {settings.heritage_stats.map((stat, idx) => (
-                <div key={idx} className="heritage-stat-card">
-                  <div className="stat-num">{stat.num}</div>
-                  <div className="stat-sub">{stat.label}</div>
-                  <p className="stat-desc">{stat.desc}</p>
+                <div key={idx} className="heritage-stat-item">
+                  <div className="hstat-num">{stat.num}</div>
+                  <div className="hstat-label">{stat.label}</div>
+                  <div className="hstat-desc">{stat.desc}</div>
                 </div>
               ))}
             </div>
           )}
+
         </div>
       </section>
 
-      {/* ── Team Section ─────────────────────────────────────────────── */}
+      {/* ── TEAM ──────────────────────────────────────────────────────── */}
       {team.length > 0 && (
         <section className="team-section">
           <div className="container">
-            <h2 style={{ textAlign: 'center' }}>Meet the Team</h2>
-            <p style={{ textAlign: 'center', maxWidth: '600px', margin: '0.25rem auto 1.5rem auto' }}>
-              The people working behind the scenes to streamline harvesting, packaging, and direct distribution.
-            </p>
+            <div className="team-section-header">
+              <span className="about-eyebrow">The People</span>
+              <h2>Meet the Team</h2>
+              <p>Working behind the scenes to connect farms directly to your doorstep.</p>
+            </div>
             <div className="team-grid">
               {team.map((member, idx) => (
                 <div key={idx} className="team-card">
@@ -185,12 +169,14 @@ export const About: React.FC = () => {
                     {member.image_url ? (
                       <img className="team-avatar-image" src={member.image_url} alt={member.name} loading="lazy" />
                     ) : (
-                      <Users size={32} />
+                      <Users size={28} />
                     )}
                   </div>
-                  <h3>{member.name}</h3>
-                  <div className="team-role">{member.role}</div>
-                  <p className="team-bio">{member.bio}</p>
+                  <div className="team-card-body">
+                    <h3>{member.name}</h3>
+                    <div className="team-role">{member.role}</div>
+                    <p className="team-bio">{member.bio}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -198,124 +184,87 @@ export const About: React.FC = () => {
         </section>
       )}
 
-      {/* ── Visit CTA Banner (full-bleed) ────────────────────────────── */}
-      <section className="visit-booking-banner-section">
+      {/* ── VISIT CTA ─────────────────────────────────────────────────── */}
+      <section className="visit-cta-section">
         <div className="container">
-          <div className="visit-booking-banner">
-            <h2>{settings.visit_cta_heading}</h2>
-            <p>{settings.visit_cta_text}</p>
-            <button className="btn btn-secondary" onClick={handleOpenBooking}>
-              Book a farm visit
-            </button>
+          <div className="visit-cta-inner">
+            <div className="visit-cta-icon"><MapPin size={32} /></div>
+            <h2 className="visit-cta-heading">{settings.visit_cta_heading}</h2>
+            <p className="visit-cta-text">{settings.visit_cta_text}</p>
+            <div className="visit-cta-actions">
+              <button className="btn btn-secondary visit-cta-btn" onClick={() => setIsBookingOpen(true)}>
+                Book a Farm Visit
+              </button>
+              <div className="visit-cta-contacts">
+                {settings.contact_phone && (
+                  <a href={`tel:${settings.contact_phone}`} className="visit-contact-link">
+                    <Phone size={14} /> {settings.contact_phone}
+                  </a>
+                )}
+                {settings.contact_email && (
+                  <a href={`mailto:${settings.contact_email}`} className="visit-contact-link">
+                    <Mail size={14} /> {settings.contact_email}
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Booking Form Modal */}
-      <div className={`modal-backdrop ${isBookingOpen ? 'open' : ''}`} onClick={handleCloseBooking}>
+      {/* ── BOOKING MODAL ─────────────────────────────────────────────── */}
+      <div className={`modal-backdrop ${isBookingOpen ? 'open' : ''}`} onClick={() => setIsBookingOpen(false)}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h3>Book a Farm Visit</h3>
-            <button className="btn-icon" onClick={handleCloseBooking} aria-label="Close booking modal">
+            <button className="btn-icon" onClick={() => setIsBookingOpen(false)} aria-label="Close booking modal">
               <X size={20} />
             </button>
           </div>
-
           <form onSubmit={handleBookingSubmit}>
             <div className="modal-body">
               <div className="form-group">
                 <label htmlFor="bookingName">Full Name *</label>
-                <input
-                  type="text"
-                  id="bookingName"
-                  className="form-control"
-                  placeholder="e.g. Sukumar"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+                <input type="text" id="bookingName" className="form-control" placeholder="e.g. Sukumar"
+                  value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
-
               <div className="form-group">
                 <label htmlFor="bookingPhone">Phone Number (10-digit mobile) *</label>
-                <input
-                  type="tel"
-                  id="bookingPhone"
-                  className="form-control"
-                  placeholder="e.g. 9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
+                <input type="tel" id="bookingPhone" className="form-control" placeholder="e.g. 9876543210"
+                  value={phone} onChange={(e) => setPhone(e.target.value)} required />
               </div>
-
               <div className="form-group">
                 <label htmlFor="preferredFarm">Which Farm / Preference</label>
-                <input
-                  type="text"
-                  id="preferredFarm"
-                  className="form-control"
+                <input type="text" id="preferredFarm" className="form-control"
                   placeholder="e.g. Sri Venkateswara Gardens (or leave blank for any)"
-                  value={preferredFarm}
-                  onChange={(e) => setPreferredFarm(e.target.value)}
-                />
+                  value={preferredFarm} onChange={(e) => setPreferredFarm(e.target.value)} />
               </div>
-
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="visitDate">Preferred Visit Date</label>
-                  <input
-                    type="date"
-                    id="visitDate"
-                    className="form-control"
-                    min={todayStr}
-                    value={preferredDate}
-                    onChange={(e) => setPreferredDate(e.target.value)}
-                  />
+                  <input type="date" id="visitDate" className="form-control" min={todayStr}
+                    value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} />
                 </div>
-
                 <div className="form-group">
                   <label htmlFor="groupSize">Group Size</label>
-                  <input
-                    type="text"
-                    id="groupSize"
-                    className="form-control"
-                    placeholder="e.g. 2 adults, 1 child"
-                    value={groupSize}
-                    onChange={(e) => setGroupSize(e.target.value)}
-                  />
+                  <input type="text" id="groupSize" className="form-control" placeholder="e.g. 2 adults, 1 child"
+                    value={groupSize} onChange={(e) => setGroupSize(e.target.value)} />
                 </div>
               </div>
-
               <div className="form-group">
                 <label htmlFor="purpose">Purpose of Visit</label>
-                <input
-                  type="text"
-                  id="purpose"
-                  className="form-control"
+                <input type="text" id="purpose" className="form-control"
                   placeholder="e.g. Tourist / media / study / purchase"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                />
+                  value={purpose} onChange={(e) => setPurpose(e.target.value)} />
               </div>
-
               <div className="form-group">
                 <label htmlFor="bookingMessage">Additional Message</label>
-                <textarea
-                  id="bookingMessage"
-                  className="form-control"
-                  placeholder="Any requirements or questions..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={3}
-                />
+                <textarea id="bookingMessage" className="form-control" placeholder="Any requirements or questions..."
+                  value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
               </div>
             </div>
-
             <div className="modal-footer">
-              <button type="button" className="btn btn-outline" onClick={handleCloseBooking} disabled={isSubmitting}>
-                Cancel
-              </button>
+              <button type="button" className="btn btn-outline" onClick={() => setIsBookingOpen(false)} disabled={isSubmitting}>Cancel</button>
               <button type="submit" className="btn btn-secondary" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>
@@ -323,6 +272,7 @@ export const About: React.FC = () => {
           </form>
         </div>
       </div>
+
     </div>
   );
 };
