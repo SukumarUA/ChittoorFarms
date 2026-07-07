@@ -2256,8 +2256,8 @@ main.main-content {
    ===================================================================== */
 .about-hero-section {
   padding: clamp(3rem, 7vw, 6rem) 0;
-  background: linear-gradient(160deg, #fafdf8 0%, rgba(245, 250, 245, 0.6) 100%);
-  border-bottom: 1px solid rgba(30, 94, 58, 0.06);
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .about-hero-grid {
@@ -2298,7 +2298,7 @@ main.main-content {
 .about-hero-h1 {
   font-size: clamp(2rem, 5vw, 3.2rem);
   line-height: 1.15;
-  color: var(--primary);
+  color: var(--secondary);
   margin: 0;
 }
 
@@ -2389,7 +2389,7 @@ main.main-content {
    ===================================================================== */
 .team-section {
   padding: clamp(3rem, 7vw, 5.5rem) 0;
-  background: #fafdf8;
+  background: var(--bg-app);
 }
 
 .team-section-header {
@@ -2399,7 +2399,7 @@ main.main-content {
 
 .team-section-header h2 {
   font-size: clamp(1.75rem, 4vw, 2.5rem);
-  color: var(--primary);
+  color: var(--secondary);
   margin: 0.5rem 0 1rem 0;
 }
 
@@ -2420,21 +2420,37 @@ main.main-content {
 .team-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-top: 4px solid var(--secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 2rem 1.5rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   text-align: center;
   transition: var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  opacity: 0;
+  transition: var(--transition-normal);
 }
 
 .team-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(30, 94, 58, 0.1);
+}
+
+.team-card:hover::before {
+  opacity: 1;
 }
 
 .team-avatar-placeholder {
@@ -2468,7 +2484,7 @@ main.main-content {
 .team-card h3 {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--secondary);
   margin: 0;
 }
 
@@ -2491,7 +2507,7 @@ main.main-content {
    ABOUT PAGE — VISIT CTA SECTION (card style)
    ===================================================================== */
 .visit-cta-section {
-  background: #fafdf8;
+  background: var(--bg-app);
   padding: clamp(2.5rem, 6vw, 4.5rem) 0;
 }
 
@@ -2503,11 +2519,11 @@ main.main-content {
   gap: 2rem;
   width: 100%;
   background: var(--bg-card);
-  border: 1px solid rgba(30, 94, 58, 0.12);
+  border: 1px solid var(--border-color);
   border-left: 5px solid var(--secondary);
   border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
-  box-shadow: 0 4px 24px rgba(30, 94, 58, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .visit-cta-icon {
@@ -2530,7 +2546,7 @@ main.main-content {
 
 .visit-cta-heading {
   font-size: clamp(1.2rem, 3vw, 1.65rem);
-  color: var(--primary);
+  color: var(--secondary);
   line-height: 1.25;
   margin: 0 0 0.4rem 0;
 }

@@ -195,7 +195,7 @@ export const About: React.FC = () => {
             </div>
             <div className="visit-cta-actions">
               <button className="btn btn-secondary visit-cta-btn" onClick={() => setIsBookingOpen(true)}>
-                Visit Our Farms
+                Book Visit
               </button>
             </div>
           </div>
