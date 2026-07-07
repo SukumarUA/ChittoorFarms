@@ -97,7 +97,7 @@ export const About: React.FC = () => {
               <div className="about-trust-row">
                 <span className="about-trust-chip"><Leaf size={13} /> Farm Direct</span>
                 <span className="about-trust-chip"><Truck size={13} /> No Middlemen</span>
-                <span className="about-trust-chip"><ShieldCheck size={13} /> Naturally Ripened Fresh Produce</span>
+                <span className="about-trust-chip"><ShieldCheck size={13} /> Fresh Produce</span>
               </div>
             </div>
 
@@ -195,7 +195,7 @@ export const About: React.FC = () => {
             </div>
             <div className="visit-cta-actions">
               <button className="btn btn-secondary visit-cta-btn" onClick={() => setIsBookingOpen(true)}>
-                Book a Farm Visit
+                Visit Our Farms
               </button>
             </div>
           </div>

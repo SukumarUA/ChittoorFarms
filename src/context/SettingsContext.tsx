@@ -78,9 +78,9 @@ const DEFAULTS: SiteSettings = {
     "To maintain this high standard of quality, local farmers invest an average of ₹30,000 per acre each season in careful cultivation, soil nourishment, and natural harvesting techniques, ensuring every mango is picked at perfect maturity.",
     "However, without a direct market, these skilled farmers are often vulnerable to exploitative middlemen and pulp conglomerates. By purchasing from Chittoor Farms, you bridge this gap directly — ensuring fair profits reach the growers while enjoying premium, naturally ripened produce delivered straight to your home.",
   ].join('\n\n'),
-  visit_cta_heading: 'Visit a Real Mango Orchard',
+  visit_cta_heading: 'Visit Our Farms',
   visit_cta_text:
-    'Want to see how your mangoes are grown? You are welcome to visit our partner orchards in Chittoor. Walk among mango trees, taste fresh fruit directly from branches, and meet the farmers.',
+    'You are welcome to visit our partner farms in Chittoor. Walk through the orchards, taste fresh produce straight from the source, and meet the farmers who grow it.',
   features_heading: 'Why Chittoor Farms?',
   features_subtext:
     'We bypass middle-men, cold chambers, and chemicals to offer you fruit the way nature intended.',
