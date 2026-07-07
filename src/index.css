@@ -2438,7 +2438,7 @@ main.main-content {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 4px;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: linear-gradient(90deg, hsl(150, 55%, 38%), var(--secondary));
   opacity: 0;
   transition: var(--transition-normal);
 }
@@ -3855,7 +3855,7 @@ input:checked + .toggle-slider:before {
 
 .heritage-title {
   font-size: clamp(1.6rem, 4vw, 2.75rem);
-  color: var(--primary);
+  color: var(--secondary);
   margin-top: 0.25rem;
   line-height: 1.2;
 }
@@ -3911,7 +3911,7 @@ input:checked + .toggle-slider:before {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--primary);
+  color: var(--secondary);
 }
 
 .hstat-desc {
