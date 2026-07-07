@@ -103,7 +103,7 @@ export const Home: React.FC = () => {
   useEffect(() => {
     const rotationTimer = window.setInterval(() => {
       setActiveGreetingIndex((currentIndex) => (currentIndex + 1) % greetings.length);
-    }, 3200);
+    }, 1600);
 
     return () => window.clearInterval(rotationTimer);
   }, []);
