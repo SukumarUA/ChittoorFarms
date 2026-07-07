@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, X, Leaf, Truck, ShieldCheck, MapPin, Phone, Mail } from 'lucide-react';
+import { Users, X, Leaf, Truck, ShieldCheck, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { useSettings } from '../context/SettingsContext';
@@ -97,7 +97,7 @@ export const About: React.FC = () => {
               <div className="about-trust-row">
                 <span className="about-trust-chip"><Leaf size={13} /> Farm Direct</span>
                 <span className="about-trust-chip"><Truck size={13} /> No Middlemen</span>
-                <span className="about-trust-chip"><ShieldCheck size={13} /> Naturally Ripened</span>
+                <span className="about-trust-chip"><ShieldCheck size={13} /> Naturally Ripened Fresh Produce</span>
               </div>
             </div>
 
@@ -188,25 +188,15 @@ export const About: React.FC = () => {
       <section className="visit-cta-section">
         <div className="container">
           <div className="visit-cta-inner">
-            <div className="visit-cta-icon"><MapPin size={32} /></div>
-            <h2 className="visit-cta-heading">{settings.visit_cta_heading}</h2>
-            <p className="visit-cta-text">{settings.visit_cta_text}</p>
+            <div className="visit-cta-icon"><MapPin size={26} /></div>
+            <div className="visit-cta-content">
+              <h2 className="visit-cta-heading">{settings.visit_cta_heading}</h2>
+              <p className="visit-cta-text">{settings.visit_cta_text}</p>
+            </div>
             <div className="visit-cta-actions">
               <button className="btn btn-secondary visit-cta-btn" onClick={() => setIsBookingOpen(true)}>
                 Book a Farm Visit
               </button>
-              <div className="visit-cta-contacts">
-                {settings.contact_phone && (
-                  <a href={`tel:${settings.contact_phone}`} className="visit-contact-link">
-                    <Phone size={14} /> {settings.contact_phone}
-                  </a>
-                )}
-                {settings.contact_email && (
-                  <a href={`mailto:${settings.contact_email}`} className="visit-contact-link">
-                    <Mail size={14} /> {settings.contact_email}
-                  </a>
-                )}
-              </div>
             </div>
           </div>
         </div>
