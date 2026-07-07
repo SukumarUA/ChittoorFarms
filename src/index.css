@@ -2306,6 +2306,7 @@ main.main-content {
   font-size: 1.05rem;
   line-height: 1.8;
   color: var(--text-muted);
+  text-align: justify;
 }
 
 .about-trust-row {
